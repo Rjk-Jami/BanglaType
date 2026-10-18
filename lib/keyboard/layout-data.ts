@@ -1,0 +1,77 @@
+import { KeyCap } from './types';
+
+export const KEYBOARD_ROWS: KeyCap[][] = [
+  // Row 1
+  [
+    { code: 'Backquote', label: '` ~', unshifted: '`', shifted: '~', width: 'w-10' },
+    { code: 'Digit1', label: '1', unshifted: '১', shifted: '!', alt: '৴' },
+    { code: 'Digit2', label: '2', unshifted: '২', shifted: '@', alt: '৵' },
+    { code: 'Digit3', label: '3', unshifted: '৩', shifted: '#', alt: '৶' },
+    { code: 'Digit4', label: '4', unshifted: '৪', shifted: '$', alt: '৳', shiftAlt: '৲' },
+    { code: 'Digit5', label: '5', unshifted: '৫', shifted: '%', alt: '৷' },
+    { code: 'Digit6', label: '6', unshifted: '৬', shifted: '^', alt: '৸' },
+    { code: 'Digit7', label: '7', unshifted: '৭', shifted: '&', alt: '৹' },
+    { code: 'Digit8', label: '8', unshifted: '৮', shifted: '*' },
+    { code: 'Digit9', label: '9', unshifted: '৯', shifted: '(' },
+    { code: 'Digit0', label: '0', unshifted: '০', shifted: ')', alt: '৽' },
+    { code: 'Minus', label: '- _', unshifted: '-', shifted: '_' },
+    { code: 'Equal', label: '= +', unshifted: '=', shifted: '+' },
+    { code: 'Backspace', label: '⌫', width: 'w-14 sm:w-16', isSpecial: true },
+  ],
+  // Row 2
+  [
+    { code: 'Tab', label: '⇥', width: 'w-12 sm:w-14', isSpecial: true },
+    { code: 'KeyQ', label: 'Q', unshifted: 'ঙ', shifted: 'ং', alt: '৽', shiftAlt: 'ৡ' },
+    { code: 'KeyW', label: 'W', unshifted: 'য', shifted: 'য়', alt: '্য' },
+    { code: 'KeyE', label: 'E', unshifted: 'ড', shifted: 'ঢ', alt: 'ৄ' },
+    { code: 'KeyR', label: 'R', unshifted: 'প', shifted: 'ফ' },
+    { code: 'KeyT', label: 'T', unshifted: 'ট', shifted: 'ঠ' },
+    { code: 'KeyY', label: 'Y', unshifted: 'চ', shifted: 'ছ' },
+    { code: 'KeyU', label: 'U', unshifted: 'জ', shifted: 'ঝ' },
+    { code: 'KeyI', label: 'I', unshifted: 'হ', shifted: 'ঞ' },
+    { code: 'KeyO', label: 'O', unshifted: 'গ', shifted: 'ঘ' },
+    { code: 'KeyP', label: 'P', unshifted: 'ড়', shifted: 'ঢ়' },
+    { code: 'BracketLeft', label: '[ {', unshifted: '[', shifted: '{' },
+    { code: 'BracketRight', label: '] }', unshifted: ']', shifted: '}' },
+    { code: 'Backslash', label: '\\ |', unshifted: '\\', shifted: '|' },
+  ],
+  // Row 3
+  [
+    { code: 'CapsLock', label: '⇪', width: 'w-14 sm:w-16', isSpecial: true },
+    { code: 'KeyA', label: 'A', unshifted: 'ৃ', shifted: 'ৗ', alt: 'ঋ', shiftAlt: 'ৠ' },
+    { code: 'KeyS', label: 'S', unshifted: 'ু', shifted: 'ূ', alt: 'উ', shiftAlt: 'ঊ' },
+    { code: 'KeyD', label: 'D', unshifted: 'ি', shifted: 'ী', alt: 'ই', shiftAlt: 'ঈ' },
+    { code: 'KeyF', label: 'F', unshifted: 'ব', shifted: 'ভ', alt: 'ৰ', shiftAlt: 'ৱ' },
+    { code: 'KeyG', label: 'G', unshifted: '্', shifted: '৷', alt: '৷' },
+    { code: 'KeyH', label: 'H', unshifted: 'া', shifted: 'অ', alt: 'আ' },
+    { code: 'KeyJ', label: 'J', unshifted: 'ক', shifted: 'খ', alt: 'ক্ষ' },
+    { code: 'KeyK', label: 'K', unshifted: 'ত', shifted: 'থ', alt: 'ৎ' },
+    { code: 'KeyL', label: 'L', unshifted: 'দ', shifted: 'ধ', alt: 'ঌ', shiftAlt: 'ৡ' },
+    { code: 'Semicolon', label: '; :', unshifted: ';', shifted: ':' },
+    { code: 'Quote', label: '\' "', unshifted: '\'', shifted: '"' },
+    { code: 'Enter', label: '↵ Enter', width: 'w-16 sm:w-20', isSpecial: true },
+  ],
+  // Row 4
+  [
+    { code: 'ShiftLeft', label: '⇧ Shift', width: 'w-16 sm:w-20', isSpecial: true },
+    { code: 'KeyZ', label: 'Z', unshifted: 'ঁ', shifted: 'ঃ', alt: '৺' },
+    { code: 'KeyX', label: 'X', unshifted: 'ো', shifted: 'ৌ', alt: 'ও', shiftAlt: 'ঔ' },
+    { code: 'KeyC', label: 'C', unshifted: 'ে', shifted: 'ৈ', alt: 'এ', shiftAlt: 'ঐ' },
+    { code: 'KeyV', label: 'V', unshifted: 'র', shifted: 'ল', alt: '্র', shiftAlt: 'র্' },
+    { code: 'KeyB', label: 'B', unshifted: 'ন', shifted: 'ণ' },
+    { code: 'KeyN', label: 'N', unshifted: 'স', shifted: 'ষ' },
+    { code: 'KeyM', label: 'M', unshifted: 'ম', shifted: 'শ' },
+    { code: 'Comma', label: ', <', unshifted: ',', shifted: '<' },
+    { code: 'Period', label: '. >', unshifted: '.', shifted: '>', alt: '়' },
+    { code: 'Slash', label: '/ ?', unshifted: '/', shifted: '?' },
+    { code: 'ShiftRight', label: '⇧ Shift', width: 'w-16 sm:w-20', isSpecial: true },
+  ],
+  // Row 5
+  [
+    { code: 'ControlLeft', label: 'Ctrl', width: 'w-12', isSpecial: true },
+    { code: 'AltLeft', label: 'Alt', width: 'w-12', isSpecial: true },
+    { code: 'Space', label: 'Space', width: 'flex-1 min-w-[140px]', unshifted: ' ', shifted: ' ' },
+    { code: 'AltRight', label: 'AltGr', width: 'w-14', isSpecial: true },
+    { code: 'ControlRight', label: 'Ctrl', width: 'w-12', isSpecial: true },
+  ],
+];
