@@ -3,6 +3,7 @@
 import { ReactNode, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface GlassModalProps {
   isOpen: boolean;
@@ -58,22 +59,24 @@ export function GlassModal({
             {/* Header */}
             {title && (
               <div className="flex items-center justify-between px-6 pt-5 pb-3">
-                <div className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex-1 text-center">
+                <div className="text-xl font-heading font-bold text-zinc-900 dark:text-zinc-100 flex-1 text-center">
                   {title}
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={onClose}
-                  className="p-1.5 rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                   aria-label="Close modal"
                 >
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
             )}
 
             {/* Content */}
-            <div className="p-4 sm:p-6">{children}</div>
+            <div className="p-4 sm:p-6 font-body">{children}</div>
           </motion.div>
         </div>
       )}

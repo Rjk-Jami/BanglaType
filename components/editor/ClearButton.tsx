@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { GlassModal } from '@/components/ui/GlassModal';
+import { Button } from '@/components/ui/button';
 
 interface ClearButtonProps {
   onClear: () => void;
@@ -32,16 +33,16 @@ export function ClearButton({
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant="destructive-outline"
+        size="sm"
         onClick={handleClick}
         disabled={disabled}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-800/80 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-200 dark:hover:border-rose-800 text-zinc-600 hover:text-rose-600 dark:text-zinc-400 dark:hover:text-rose-400 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
         title="সব লেখা মুছুন"
+        leftIcon={<Trash2 className="w-4 h-4" />}
       >
-        <Trash2 className="w-4 h-4" />
-        মুছুন
-      </button>
+        <span>মুছুন</span>
+      </Button>
 
       <GlassModal
         isOpen={showConfirm}
@@ -50,24 +51,24 @@ export function ClearButton({
         maxWidth="max-w-md"
       >
         <div className="flex flex-col gap-4 text-center">
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="text-sm font-body text-zinc-600 dark:text-zinc-300 leading-relaxed">
             আপনার লেখাগুলো মুছে যাবে। আপনি কি নিশ্চিত যে পুরো লেখাটি মুছে ফেলতে চান?
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="default"
               onClick={() => setShowConfirm(false)}
-              className="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm font-medium text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
             >
               বাতিল
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="destructive"
+              size="default"
               onClick={handleConfirm}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium shadow transition-colors cursor-pointer"
             >
               হ্যাঁ, মুছে ফেলুন
-            </button>
+            </Button>
           </div>
         </div>
       </GlassModal>

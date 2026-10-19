@@ -6,28 +6,60 @@ import { getJatiyoChar } from '@/lib/keyboard/jatiyo-map';
 import {
   createInitialAvroState,
   processAvroKeystroke,
+  applyAvroCandidate,
   convertToBangla,
   isIgnoredKey,
   AvroTypingState,
 } from '@/lib/keyboard/avro-engine';
 import {
-  fetchSmartWord,
+  fetchWordSuggestions,
+  setCachedWord,
   smartTransliterateFullText,
 } from '@/lib/keyboard/smart-translit';
 
-interface UseBanglaEditorProps {
-  mode: KeyboardMode;
+export interface UseBanglaEditorProps {
+  mode?: KeyboardMode;
+  initialValue?: string;
+  onValueChange?: (val: string) => void;
 }
 
-export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
-  const [text, setText] = useState<string>('');
+export function useBanglaEditor({
+  mode = 'avro',
+  initialValue = '',
+  onValueChange,
+}: UseBanglaEditorProps = {}) {
+  const [text, setTextState] = useState<string>(initialValue);
+  const onValueChangeRef = useRef(onValueChange);
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange;
+  }, [onValueChange]);
+
+  const setText = useCallback((newVal: string | ((prev: string) => string)) => {
+    setTextState((prev) => {
+      const resolved = typeof newVal === 'function' ? newVal(prev) : newVal;
+      onValueChangeRef.current?.(resolved);
+      return resolved;
+    });
+  }, []);
+
   const [copied, setCopied] = useState(false);
+  const [candidates, setCandidates] = useState<string[]>([]);
+  const [activeRaw, setActiveRaw] = useState<string>('');
+  const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<number>(0);
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const avroStateRef = useRef<AvroTypingState>(createInitialAvroState());
   const pendingCaretRef = useRef<number | null>(null);
+  const activeSuggestionsReqRef = useRef<number>(0);
 
   useEffect(() => {
     avroStateRef.current = createInitialAvroState();
+    const timer = setTimeout(() => {
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [mode]);
 
   useEffect(() => {
@@ -48,6 +80,61 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
 
   const commitAvroBuffer = useCallback(() => {
     avroStateRef.current = createInitialAvroState();
+    setCandidates([]);
+    setActiveRaw('');
+    setSelectedCandidateIndex(0);
+  }, []);
+
+  const selectCandidate = useCallback(
+    (index: number, appendSpace = false) => {
+      const textarea = textareaRef.current;
+      if (!textarea || candidates.length === 0 || !candidates[index]) {
+        commitAvroBuffer();
+        return;
+      }
+
+      const chosen = candidates[index];
+      const toInsert = appendSpace ? chosen + ' ' : chosen;
+      const start = textarea.selectionStart;
+      const res = applyAvroCandidate(
+        toInsert,
+        text,
+        start,
+        avroStateRef.current
+      );
+
+      if (activeRaw) {
+        setCachedWord(activeRaw, chosen);
+      }
+
+      avroStateRef.current = res.newState;
+      pendingCaretRef.current = res.newCaret;
+      setText(res.newText);
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
+      textarea.focus();
+    },
+    [candidates, text, activeRaw, commitAvroBuffer, setText]
+  );
+
+  const updateSuggestionsForBuffer = useCallback((raw: string) => {
+    if (!raw) {
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
+      return;
+    }
+
+    setActiveRaw(raw);
+    setSelectedCandidateIndex(0);
+    const reqId = ++activeSuggestionsReqRef.current;
+
+    fetchWordSuggestions(raw).then((suggs) => {
+      if (reqId === activeSuggestionsReqRef.current) {
+        setCandidates(suggs);
+      }
+    });
   }, []);
 
   const handleKeyDown = useCallback(
@@ -61,7 +148,80 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
         return;
       }
 
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown', 'Escape'].includes(e.key)) {
+      // Handle keyboard navigation for Avro candidate suggestions
+      if (mode === 'avro' && candidates.length > 0) {
+        // Tab (and Shift+Tab) switches / cycles through the available candidate options
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            setSelectedCandidateIndex(
+              (prev) => (prev - 1 + candidates.length) % candidates.length
+            );
+          } else {
+            setSelectedCandidateIndex((prev) => (prev + 1) % candidates.length);
+          }
+          return;
+        }
+
+        // Enter inserts the currently highlighted suggestion
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const targetIdx =
+            selectedCandidateIndex >= 0 && selectedCandidateIndex < candidates.length
+              ? selectedCandidateIndex
+              : 0;
+          selectCandidate(targetIdx, false);
+          return;
+        }
+
+        // Space with a non-first candidate selected commits it and appends a space
+        if (e.key === ' ' && selectedCandidateIndex > 0) {
+          e.preventDefault();
+          selectCandidate(selectedCandidateIndex, true);
+          return;
+        }
+
+        // Arrow keys cycle through suggestions when the dropdown is open
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          setSelectedCandidateIndex((prev) => (prev + 1) % candidates.length);
+          return;
+        }
+
+        if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setSelectedCandidateIndex(
+            (prev) => (prev - 1 + candidates.length) % candidates.length
+          );
+          return;
+        }
+
+        // Escape closes the suggestion dropdown
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          commitAvroBuffer();
+          return;
+        }
+      }
+
+      // Navigation / Escape when candidate bar is not active
+      if (
+        [
+          'ArrowLeft',
+          'ArrowRight',
+          'ArrowUp',
+          'ArrowDown',
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+        ].includes(e.key)
+      ) {
+        commitAvroBuffer();
+        return;
+      }
+
+      if (e.key === 'Escape') {
         commitAvroBuffer();
         return;
       }
@@ -121,27 +281,17 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
           pendingCaretRef.current = res.newCaret;
           setText(res.newText);
 
+          if (res.newState.rawBuffer) {
+            updateSuggestionsForBuffer(res.newState.rawBuffer);
+          } else {
+            setCandidates([]);
+            setActiveRaw('');
+            setSelectedCandidateIndex(0);
+          }
+
           if (res.committedWord) {
-            const { raw, bangla, startPos, endPos } = res.committedWord;
-            fetchSmartWord(raw).then((betterBangla) => {
-              if (betterBangla && betterBangla !== bangla) {
-                setText((current) => {
-                  if (current.slice(startPos, endPos) === bangla) {
-                    const before = current.slice(0, startPos);
-                    const after = current.slice(endPos);
-                    const diff = betterBangla.length - bangla.length;
-                    if (
-                      pendingCaretRef.current !== null &&
-                      pendingCaretRef.current >= endPos
-                    ) {
-                      pendingCaretRef.current += diff;
-                    }
-                    return before + betterBangla + after;
-                  }
-                  return current;
-                });
-              }
-            });
+            const { raw, bangla } = res.committedWord;
+            setCachedWord(raw, bangla);
           }
         } else {
           commitAvroBuffer();
@@ -151,12 +301,24 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
         }
       }
     },
-    [mode, text, commitAvroBuffer]
+    [
+      mode,
+      text,
+      candidates,
+      selectedCandidateIndex,
+      commitAvroBuffer,
+      selectCandidate,
+      updateSuggestionsForBuffer,
+      setText,
+    ]
   );
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
-  }, []);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setText(e.target.value);
+    },
+    [setText]
+  );
 
   const handleClick = useCallback(() => {
     commitAvroBuffer();
@@ -184,7 +346,10 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
             smartTransliterateFullText(pastedText).then((refined) => {
               if (refined && refined !== fastConverted) {
                 setText((curr) => {
-                  if (curr.slice(start, start + fastConverted.length) === fastConverted) {
+                  if (
+                    curr.slice(start, start + fastConverted.length) ===
+                    fastConverted
+                  ) {
                     const diff = refined.length - fastConverted.length;
                     if (
                       pendingCaretRef.current !== null &&
@@ -206,7 +371,7 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
         }
       }
     },
-    [mode, text, commitAvroBuffer]
+    [mode, text, commitAvroBuffer, setText]
   );
 
   const convertCurrentTextToBangla = useCallback(async () => {
@@ -218,7 +383,7 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
     if (refined && refined !== fast) {
       setText(refined);
     }
-  }, [text, commitAvroBuffer]);
+  }, [text, commitAvroBuffer, setText]);
 
   const handleBlur = useCallback(() => {
     commitAvroBuffer();
@@ -248,7 +413,7 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [commitAvroBuffer]);
+  }, [commitAvroBuffer, setText]);
 
   const insertTextAtCursor = useCallback(
     (insertedText: string) => {
@@ -267,8 +432,10 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
       setText(newText);
       textarea.focus();
     },
-    [text]
+    [text, setText]
   );
+
+  const hasCandidateBar = Boolean(mode === 'avro' && activeRaw && candidates.length > 0);
 
   return {
     text,
@@ -285,5 +452,10 @@ export function useBanglaEditor({ mode }: UseBanglaEditorProps) {
     insertTextAtCursor,
     handlePaste,
     convertCurrentTextToBangla,
+    candidates,
+    activeRaw,
+    selectedCandidateIndex,
+    selectCandidate,
+    hasCandidateBar,
   };
 }

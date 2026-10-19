@@ -128,26 +128,30 @@ export const JATIYO_SHIFT_ALT_MAP: Record<string, string> = {
  */
 export function getJatiyoChar(e: {
   key: string;
-  shiftKey: boolean;
-  altKey: boolean;
-  ctrlKey: boolean;
+  shiftKey?: boolean;
+  altKey?: boolean;
+  ctrlKey?: boolean;
 }): string | null {
+  const shiftKey = Boolean(e.shiftKey);
+  const altKey = Boolean(e.altKey);
+  const ctrlKey = Boolean(e.ctrlKey);
+
   // Do not intercept browser/system shortcuts (e.g. Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+Z, Meta/Cmd)
-  if (e.ctrlKey && !e.altKey) {
+  if (ctrlKey && !altKey) {
     return null;
   }
 
-  const isAltGr = (e.ctrlKey && e.altKey) || e.altKey;
+  const isAltGr = (ctrlKey && altKey) || altKey;
   const keyLower = e.key.toLowerCase();
 
   if (isAltGr) {
-    if (e.shiftKey) {
+    if (shiftKey) {
       return JATIYO_SHIFT_ALT_MAP[keyLower] || JATIYO_SHIFT_ALT_MAP[e.key] || null;
     }
     return JATIYO_ALT_MAP[keyLower] || JATIYO_ALT_MAP[e.key] || null;
   }
 
-  if (e.shiftKey) {
+  if (shiftKey) {
     return JATIYO_SHIFT_MAP[e.key] || null;
   }
 

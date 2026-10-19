@@ -7,11 +7,13 @@ interface EditorTextareaProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   text: string;
   mode: KeyboardMode;
+  hasCandidateBar?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onClick: () => void;
   onBlur: () => void;
   onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
 }
 
 export function EditorTextarea({
@@ -23,8 +25,10 @@ export function EditorTextarea({
   onClick,
   onBlur,
   onPaste,
+  placeholder,
 }: EditorTextareaProps) {
   const getPlaceholder = () => {
+    if (placeholder) return placeholder;
     switch (mode) {
       case 'avro':
         return 'এখানে ইংরেজিতে টাইপ করুন, স্বয়ংক্রিয়ভাবে বাংলায় রূপান্তরিত হবে (যেমন: ami banglay likhi → আমি বাংলায় লিখি)...';
@@ -47,11 +51,7 @@ export function EditorTextarea({
         onPaste={onPaste}
         placeholder={getPlaceholder()}
         spellCheck={false}
-        className="w-full flex-1 bg-transparent resize-y text-lg sm:text-xl md:text-2xl text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none leading-relaxed tracking-normal font-sans selection:bg-emerald-500/30 dark:selection:bg-emerald-400/30"
-        style={{
-          fontFamily:
-            'var(--font-hind-siliguri), "Noto Sans Bengali", "SolaimanLipi", "Kalpurush", sans-serif',
-        }}
+        className="w-full flex-1 bg-transparent resize-y text-base sm:text-lg text-zinc-900 dark:text-zinc-50 placeholder:text-sm sm:placeholder:text-base placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none leading-relaxed tracking-normal font-body selection:bg-emerald-500/30 dark:selection:bg-emerald-400/30"
       />
     </div>
   );

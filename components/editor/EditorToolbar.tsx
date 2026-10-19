@@ -4,28 +4,23 @@ import { EditorStats, KeyboardMode } from '@/lib/keyboard/types';
 import { CharacterCounter } from './CharacterCounter';
 import { CopyButton } from './CopyButton';
 import { ClearButton } from './ClearButton';
-import { LayoutPreviewTrigger } from './LayoutPreviewTrigger';
-
 import { ConvertButton } from './ConvertButton';
 
 interface EditorToolbarProps {
   stats: EditorStats;
-  mode: KeyboardMode;
+  mode?: KeyboardMode;
   copied: boolean;
   onCopy: () => void;
   onClear: () => void;
-  onOpenKeyboard: () => void;
   onConvert?: () => Promise<void>;
   hasText: boolean;
 }
 
 export function EditorToolbar({
   stats,
-  mode,
   copied,
   onCopy,
   onClear,
-  onOpenKeyboard,
   onConvert,
   hasText,
 }: EditorToolbarProps) {
@@ -39,7 +34,6 @@ export function EditorToolbar({
         {onConvert && (
           <ConvertButton onConvert={onConvert} disabled={!hasText} />
         )}
-        <LayoutPreviewTrigger onOpen={onOpenKeyboard} />
         <CopyButton copied={copied} onCopy={onCopy} disabled={!hasText} />
         <ClearButton
           onClear={onClear}

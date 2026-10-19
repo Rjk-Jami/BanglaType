@@ -1,22 +1,37 @@
 'use client';
 
-import { toBangla, isBangla, BUILTIN_DICTIONARY } from './avro-phonetic-engine';
+import {
+  toBangla,
+  isBangla,
+  BUILTIN_DICTIONARY,
+  getAvroCandidates,
+} from './avro-phonetic-engine';
 
-const STORAGE_CACHE_KEY = 'banglatype_smart_cache_v2';
+const STORAGE_CACHE_KEY = 'banglatype_smart_cache_v4';
 const translitCache = new Map<string, string>();
+const candidateCache = new Map<string, string[]>();
 
+// Prepopulate from built-in dictionary
 for (const [key, val] of Object.entries(BUILTIN_DICTIONARY)) {
   translitCache.set(key.toLowerCase(), val);
 }
 
+// Load user customizations from localStorage & clean up obsolete caches
 if (typeof window !== 'undefined') {
   try {
+    // Clean up older buggy cache keys
+    localStorage.removeItem('banglatype_smart_cache_v1');
+    localStorage.removeItem('banglatype_smart_cache_v2');
+    localStorage.removeItem('banglatype_smart_cache_v3');
+
     const saved = localStorage.getItem(STORAGE_CACHE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === 'string') {
-          translitCache.set(k.toLowerCase(), v);
+        const lowerKey = k.toLowerCase();
+        // Never allow cache to override built-in dictionary
+        if (typeof v === 'string' && !Object.hasOwn(BUILTIN_DICTIONARY, lowerKey)) {
+          translitCache.set(lowerKey, v);
         }
       }
     }
@@ -44,38 +59,56 @@ export function getCachedWord(word: string): string | null {
   return translitCache.get(word.toLowerCase().trim()) || null;
 }
 
+export function setCachedWord(word: string, bangla: string) {
+  if (!word || !bangla) return;
+  const lower = word.toLowerCase().trim();
+  translitCache.set(lower, bangla);
+  persistCacheToStorage();
+}
+
+/**
+ * Fetch candidate suggestions for an in-progress word.
+ * 100% Native Avro phonetic intelligence, dictionary prefix matching, and spelling variations.
+ */
+export async function fetchWordSuggestions(rawWord: string): Promise<string[]> {
+  const word = rawWord.trim();
+  if (!word) return [];
+  const lower = word.toLowerCase();
+
+  // Check cache
+  if (candidateCache.has(lower)) {
+    return candidateCache.get(lower)!;
+  }
+
+  // 1. Get immediate candidates from native phonetic engine & dictionary
+  const candidates: string[] = getAvroCandidates(word);
+
+  // If user has a cached custom translation, prioritize it
+  const cached = translitCache.get(lower);
+  if (cached && !candidates.includes(cached)) {
+    candidates.unshift(cached);
+  }
+
+  candidateCache.set(lower, candidates);
+  return candidates;
+}
+
 export async function fetchSmartWord(rawWord: string): Promise<string> {
   const word = rawWord.trim();
   if (!word) return '';
 
   const lower = word.toLowerCase();
-
   if (translitCache.has(lower)) {
     return translitCache.get(lower)!;
   }
 
-  try {
-    const url = `https://inputtools.google.com/request?text=${encodeURIComponent(
-      word
-    )}&itc=bn-t-i0-und&num=3`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      if (
-        data &&
-        data[0] === 'SUCCESS' &&
-        data[1] &&
-        data[1][0] &&
-        Array.isArray(data[1][0][1]) &&
-        data[1][0][1].length > 0
-      ) {
-        const bestMatch: string = data[1][0][1][0];
-        translitCache.set(lower, bestMatch);
-        persistCacheToStorage();
-        return bestMatch;
-      }
-    }
-  } catch {}
+  const suggestions = await fetchWordSuggestions(word);
+  if (suggestions.length > 0) {
+    const best = suggestions[0];
+    translitCache.set(lower, best);
+    persistCacheToStorage();
+    return best;
+  }
 
   const fallback = toBangla(word);
   translitCache.set(lower, fallback);
@@ -89,7 +122,12 @@ export async function smartTransliterateFullText(text: string): Promise<string> 
 
   const convertedTokens = await Promise.all(
     tokens.map(async (tok) => {
-      if (!tok || /^\s+$/.test(tok) || /^[.,!?;:()\[\]{}'"\-]+$/.test(tok) || isBangla(tok)) {
+      if (
+        !tok ||
+        /^\s+$/.test(tok) ||
+        /^[.,!?;:()\[\]{}'"\-]+$/.test(tok) ||
+        isBangla(tok)
+      ) {
         return tok;
       }
       return await fetchSmartWord(tok);
