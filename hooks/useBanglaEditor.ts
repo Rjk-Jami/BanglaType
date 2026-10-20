@@ -53,6 +53,8 @@ export function useBanglaEditor({
   const activeSuggestionsReqRef = useRef<number>(0);
 
   useEffect(() => {
+    // Mode changes invalidate suggestions requested by the previous keyboard mode.
+    activeSuggestionsReqRef.current += 1;
     avroStateRef.current = createInitialAvroState();
     const timer = setTimeout(() => {
       setCandidates([]);
