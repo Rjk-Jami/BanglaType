@@ -898,7 +898,7 @@ export function parse(input: string, options?: ParseOptions): ParseResult {
   const opts = {
     banglaDigits: options?.banglaDigits ?? true,
     banglaFullStop: options?.banglaFullStop ?? true,
-    dictionary: options?.dictionary ?? true,
+    dictionary: options?.dictionary ?? false,
   };
 
   let dict: BanglishDictionary | null = null;
@@ -958,24 +958,19 @@ export function getAvroCandidates(rawWord: string): string[] {
 
   const results = new Set<string>();
 
-  // 1. Built-in dictionary exact match
-  if (Object.hasOwn(BUILTIN_DICTIONARY, lower)) {
-    results.add(BUILTIN_DICTIONARY[lower]);
-  }
-
-  // 2. Standard Avro parse
+  // 1. Standard Avro parse
   const primaryParse = phoneticParse(word);
   if (primaryParse) {
     results.add(primaryParse);
   }
 
-  // 3. Lowercase Avro parse (if different)
+  // 2. Lowercase Avro parse (if different)
   if (lower !== word) {
     const lowerParse = phoneticParse(lower);
     if (lowerParse) results.add(lowerParse);
   }
 
-  // 4. Common phonetic variation rules:
+  // 3. Common phonetic variation rules:
   // (a) t -> T variation for words like 'ekta' -> 'একটা', 'choto' -> 'ছোট', 'taka' -> 'টাকা'
   if (lower.includes('t')) {
     const withRetroflexT = lower.replace(/t/g, 'T');
@@ -1017,18 +1012,6 @@ export function getAvroCandidates(rawWord: string): string[] {
     const withoutO = lower.slice(0, -1);
     const cand1 = phoneticParse(withoutO);
     if (cand1 && !results.has(cand1)) results.add(cand1);
-  }
-
-  // 5. Dictionary prefix completions (e.g. 'jami' -> 'জামির', 'জামিতে')
-  let prefixCount = 0;
-  for (const [k, v] of Object.entries(BUILTIN_DICTIONARY)) {
-    if (k.startsWith(lower) && k !== lower) {
-      if (!results.has(v)) {
-        results.add(v);
-        prefixCount++;
-        if (prefixCount >= 3) break;
-      }
-    }
   }
 
   return Array.from(results).slice(0, 5);
