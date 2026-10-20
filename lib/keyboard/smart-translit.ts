@@ -6,7 +6,7 @@ import {
   getAvroCandidates,
 } from './avro-phonetic-engine';
 
-const STORAGE_CACHE_KEY = 'banglatype_smart_cache_v4';
+const STORAGE_CACHE_KEY = 'banglatype_smart_cache_v5';
 const translitCache = new Map<string, string>();
 const candidateCache = new Map<string, string[]>();
 
@@ -17,6 +17,8 @@ if (typeof window !== 'undefined') {
     localStorage.removeItem('banglatype_smart_cache_v1');
     localStorage.removeItem('banglatype_smart_cache_v2');
     localStorage.removeItem('banglatype_smart_cache_v3');
+    // v4 cached automatic transliterations, not just explicit user corrections.
+    localStorage.removeItem('banglatype_smart_cache_v4');
 
     const saved = localStorage.getItem(STORAGE_CACHE_KEY);
     if (saved) {
