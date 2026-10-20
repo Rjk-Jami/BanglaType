@@ -43,3 +43,5 @@ next-env.d.ts
 
 
 .agents
+# Compiled test output
+/.test-build/
