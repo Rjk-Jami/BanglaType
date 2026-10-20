@@ -17,6 +17,7 @@
 ## Table of Contents
 
 - [Features](#features)
+- [Cross-Platform Browser Input](#cross-platform-browser-input)
 - [Installation (Using as a Library)](#installation-using-as-a-library)
   - [Peer Dependencies](#peer-dependencies)
 - [Quick Start: 1-Line Drop-in Components](#quick-start-1-line-drop-in-components)
@@ -330,6 +331,16 @@ console.log(char); // "ি"
 const candidates = await fetchWordSuggestions('shadhinota');
 console.log(candidates); // ["স্বাধীনতা", "স্বাধীনতার", ...]
 ```
+
+---
+
+## Cross-Platform Browser Input
+
+BanglaType uses native browser inputs; it does not render a separate on-screen keyboard. Its input hooks support both desktop keyboard events and native text changes, which is important because mobile browsers do not always expose the same keyboard events as desktop browsers.
+
+See [Cross-Platform Input Notes](docs/cross-platform-input.md) for the input strategy and real-device verification checklist.
+
+**Compatibility note:** desktop behavior and native mobile keyboard behavior must be verified separately. In particular, Jatiyo mapping depends on the key values exposed by the native keyboard and may vary with keyboard layout, autocorrect, and composition behavior.
 
 ---
 
