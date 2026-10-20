@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { KeyboardMode, EditorStats } from '@/lib/keyboard/types';
 import { getJatiyoChar } from '@/lib/keyboard/jatiyo-map';
+import { getTextEdit } from '@/lib/keyboard/text-edit';
 import {
   createInitialAvroState,
   processAvroKeystroke,
@@ -321,14 +322,91 @@ export function useBanglaEditor({
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      // Native edits (paste, autofill, IME, undo) supersede phonetic key handling.
+      const nextValue = e.currentTarget.value;
+      const nativeEvent = e.nativeEvent as InputEvent;
+      const edit = getTextEdit(text, nextValue);
+
+      // Do not transform intermediate IME composition values.
+      if (nativeEvent.isComposing) {
+        activeSuggestionsReqRef.current += 1;
+        setCandidates([]);
+        setActiveRaw('');
+        setSelectedCandidateIndex(0);
+        setText(nextValue);
+        commitAvroBuffer();
+        return;
+      }
+
+      // Mobile browsers may emit text input without a useful keydown event.
+      // Use the smallest text diff as a fallback, but never reinterpret paste,
+      // autocorrect, or multi-character insertions as individual key presses.
+      if (
+        edit &&
+        edit.insertedText.length === 1 &&
+        /^[a-zA-Z0-9`~^:]$/.test(edit.insertedText) &&
+        mode !== 'english'
+      ) {
+        const key = edit.insertedText;
+        const selectionEnd = edit.start + edit.removedText.length;
+
+        if (mode === 'jatiyo') {
+          const mappedChar = getJatiyoChar({
+            key,
+            shiftKey: key !== key.toLowerCase(),
+            altKey: false,
+            ctrlKey: false,
+          });
+
+          if (mappedChar !== null) {
+            const newText =
+              text.slice(0, edit.start) +
+              mappedChar +
+              text.slice(selectionEnd);
+            pendingCaretRef.current = edit.start + mappedChar.length;
+            setText(newText);
+            commitAvroBuffer();
+            return;
+          }
+        } else if (mode === 'avro') {
+          const result = processAvroKeystroke(
+            key,
+            text,
+            edit.start,
+            selectionEnd,
+            avroStateRef.current
+          );
+
+          if (result.handled) {
+            avroStateRef.current = result.newState;
+            pendingCaretRef.current = result.newCaret;
+            setText(result.newText);
+
+            if (result.newState.rawBuffer) {
+              updateSuggestionsForBuffer(result.newState.rawBuffer);
+            } else {
+              setCandidates([]);
+              setActiveRaw('');
+              setSelectedCandidateIndex(0);
+            }
+
+            if (result.committedWord) {
+              setCachedWord(result.committedWord.raw, result.committedWord.bangla);
+            }
+            return;
+          }
+        }
+      }
+
+      // Deletion, paste, autocorrect, non-Latin input, and English mode should
+      // preserve the browser's result and invalidate any stale Avro buffer.
       activeSuggestionsReqRef.current += 1;
       setCandidates([]);
       setActiveRaw('');
       setSelectedCandidateIndex(0);
-      setText(e.target.value);
+      setText(nextValue);
+      commitAvroBuffer();
     },
-    [setText]
+    [text, mode, setText, commitAvroBuffer, updateSuggestionsForBuffer]
   );
 
   const handleClick = useCallback(() => {
