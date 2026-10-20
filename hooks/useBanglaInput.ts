@@ -102,6 +102,7 @@ export function useBanglaInput({
   const updateSuggestionsForBuffer = useCallback((raw: string) => {
     if (!raw) {
       activeSuggestionsReqRef.current += 1;
+      avroStateRef.current = createInitialAvroState();
       setCandidates([]);
       setActiveRaw('');
       setSelectedCandidateIndex(0);
