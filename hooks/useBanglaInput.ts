@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { KeyboardMode } from '@/lib/keyboard/types';
 import { getJatiyoChar } from '@/lib/keyboard/jatiyo-map';
+import { getTextEdit } from '@/lib/keyboard/text-edit';
 import {
   createInitialAvroState,
   processAvroKeystroke,
@@ -37,6 +38,8 @@ export function useBanglaInput({
   const activeSuggestionsReqRef = useRef<number>(0);
 
   useEffect(() => {
+    // Mode changes invalidate suggestions requested by the previous keyboard mode.
+    activeSuggestionsReqRef.current += 1;
     avroStateRef.current = createInitialAvroState();
     const timer = setTimeout(() => {
       setCandidates([]);
@@ -55,6 +58,8 @@ export function useBanglaInput({
   }, [value]);
 
   const commitAvroBuffer = useCallback(() => {
+    // Invalidate any in-flight lookup so an old response cannot reopen the bar.
+    activeSuggestionsReqRef.current += 1;
     avroStateRef.current = createInitialAvroState();
     setCandidates([]);
     setActiveRaw('');
@@ -97,6 +102,8 @@ export function useBanglaInput({
 
   const updateSuggestionsForBuffer = useCallback((raw: string) => {
     if (!raw) {
+      activeSuggestionsReqRef.current += 1;
+      avroStateRef.current = createInitialAvroState();
       setCandidates([]);
       setActiveRaw('');
       setSelectedCandidateIndex(0);
@@ -270,13 +277,99 @@ export function useBanglaInput({
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setValue(e.target.value);
-      onValueChange?.(e.target.value);
+      const nextValue = e.currentTarget.value;
+      const nativeEvent = e.nativeEvent as InputEvent;
+      const edit = getTextEdit(value, nextValue);
+
+      // Let the browser/OS finish active IME composition without interfering.
+      if (nativeEvent.isComposing) {
+        activeSuggestionsReqRef.current += 1;
+        setCandidates([]);
+        setActiveRaw('');
+        setSelectedCandidateIndex(0);
+        setValue(nextValue);
+        onValueChange?.(nextValue);
+        commitAvroBuffer();
+        return;
+      }
+
+      // Native input events are the fallback for mobile keyboards that do not
+      // provide a useful keydown event. Only transform a single ASCII insertion;
+      // paste, autocorrect, and multi-character edits must remain intact.
+      if (
+        edit &&
+        edit.insertedText.length === 1 &&
+        /^[a-zA-Z0-9`~^:]$/.test(edit.insertedText) &&
+        mode !== 'english'
+      ) {
+        const key = edit.insertedText;
+        const selectionEnd = edit.start + edit.removedText.length;
+
+        if (mode === 'jatiyo') {
+          const mappedChar = getJatiyoChar({
+            key,
+            shiftKey: key !== key.toLowerCase(),
+            altKey: false,
+            ctrlKey: false,
+          });
+
+          if (mappedChar !== null) {
+            const newText =
+              value.slice(0, edit.start) +
+              mappedChar +
+              value.slice(selectionEnd);
+            const newCaret = edit.start + mappedChar.length;
+            pendingCaretRef.current = newCaret;
+            setValue(newText);
+            onValueChange?.(newText);
+            commitAvroBuffer();
+            return;
+          }
+        } else if (mode === 'avro') {
+          const result = processAvroKeystroke(
+            key,
+            value,
+            edit.start,
+            selectionEnd,
+            avroStateRef.current
+          );
+
+          if (result.handled) {
+            avroStateRef.current = result.newState;
+            pendingCaretRef.current = result.newCaret;
+            setValue(result.newText);
+            onValueChange?.(result.newText);
+            updateSuggestionsForBuffer(result.newState.rawBuffer);
+
+            if (result.committedWord) {
+              setCachedWord(result.committedWord.raw, result.committedWord.bangla);
+            }
+            return;
+          }
+        }
+      }
+
+      // Deletions, paste, autocorrect, non-Latin input, and ordinary English
+      // input follow the native browser result and reset stale phonetic state.
+      activeSuggestionsReqRef.current += 1;
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
+      setValue(nextValue);
+      onValueChange?.(nextValue);
       if (mode === 'avro' && avroStateRef.current.rawBuffer) {
         commitAvroBuffer();
+      } else if (mode !== 'avro') {
+        avroStateRef.current = createInitialAvroState();
       }
     },
-    [mode, commitAvroBuffer, onValueChange]
+    [
+      value,
+      mode,
+      commitAvroBuffer,
+      onValueChange,
+      updateSuggestionsForBuffer,
+    ]
   );
 
   const handleBlur = useCallback(() => {
