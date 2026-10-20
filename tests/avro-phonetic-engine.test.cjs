@@ -15,6 +15,12 @@ test('empty input stays empty', () => {
   assert.deepEqual(getAvroCandidates(''), []);
 });
 
+test('core Avro phonetic examples retain their expected output', () => {
+  assert.equal(phoneticParse('ami'), 'আমি');
+  assert.equal(phoneticParse('bangla'), 'বাংলা');
+  assert.equal(phoneticParse('bhalo'), 'ভালো');
+});
+
 test('default parsing uses phonetic rules instead of the built-in dictionary', () => {
   for (const input of ['ami', 'shikkha', 'unseenphoneme', 'Bangla']) {
     assert.equal(parse(input).bangla, phoneticParse(input), input);
