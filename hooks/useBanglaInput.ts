@@ -55,6 +55,8 @@ export function useBanglaInput({
   }, [value]);
 
   const commitAvroBuffer = useCallback(() => {
+    // Invalidate any in-flight lookup so an old response cannot reopen the bar.
+    activeSuggestionsReqRef.current += 1;
     avroStateRef.current = createInitialAvroState();
     setCandidates([]);
     setActiveRaw('');
@@ -97,6 +99,7 @@ export function useBanglaInput({
 
   const updateSuggestionsForBuffer = useCallback((raw: string) => {
     if (!raw) {
+      activeSuggestionsReqRef.current += 1;
       setCandidates([]);
       setActiveRaw('');
       setSelectedCandidateIndex(0);
@@ -270,6 +273,11 @@ export function useBanglaInput({
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Native edits (paste, autofill, IME, undo) supersede phonetic key handling.
+      activeSuggestionsReqRef.current += 1;
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
       setValue(e.target.value);
       onValueChange?.(e.target.value);
       if (mode === 'avro' && avroStateRef.current.rawBuffer) {
