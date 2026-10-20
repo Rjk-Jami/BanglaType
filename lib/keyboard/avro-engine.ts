@@ -57,7 +57,7 @@ export function isIgnoredKey(key: string): boolean {
 
 export function getConvertedToken(raw: string): string {
   if (!raw) return '';
-  const lower = raw.toLowerCase().trim();
+  // Explicit user corrections may override generated phonetic output.
   const cached = getCachedWord(raw);
   if (cached) return cached;
   const candidates = getAvroCandidates(raw);
