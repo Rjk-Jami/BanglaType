@@ -133,15 +133,16 @@ export function getCaretCoordinates(
 
   const borderTop = parseInt(computed.borderTopWidth, 10) || 0;
   const borderLeft = parseInt(computed.borderLeftWidth, 10) || 0;
-  const parsedLineHeight = parseInt(computed.lineHeight, 10);
-  const parsedFontSize = parseInt(computed.fontSize, 10);
+  const parsedLineHeight = parseFloat(computed.lineHeight);
+  const parsedFontSize = parseFloat(computed.fontSize);
+  // The marker contains the text after the caret to preserve wrapping. Its
+  // offsetHeight can therefore span many lines; use one line's height instead.
   const height =
-    marker.offsetHeight ||
-    (!isNaN(parsedLineHeight)
+    Number.isFinite(parsedLineHeight) && parsedLineHeight > 0
       ? parsedLineHeight
-      : !isNaN(parsedFontSize)
+      : Number.isFinite(parsedFontSize) && parsedFontSize > 0
         ? parsedFontSize * 1.3
-        : 24);
+        : 24;
 
   // Translate relative offset within element to viewport coordinates
   const caretX = rect.left + marker.offsetLeft + borderLeft - inputElement.scrollLeft;
