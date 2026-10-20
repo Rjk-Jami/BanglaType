@@ -3,18 +3,12 @@
 import {
   toBangla,
   isBangla,
-  BUILTIN_DICTIONARY,
   getAvroCandidates,
 } from './avro-phonetic-engine';
 
 const STORAGE_CACHE_KEY = 'banglatype_smart_cache_v4';
 const translitCache = new Map<string, string>();
 const candidateCache = new Map<string, string[]>();
-
-// Prepopulate from built-in dictionary
-for (const [key, val] of Object.entries(BUILTIN_DICTIONARY)) {
-  translitCache.set(key.toLowerCase(), val);
-}
 
 // Load user customizations from localStorage & clean up obsolete caches
 if (typeof window !== 'undefined') {
@@ -29,8 +23,8 @@ if (typeof window !== 'undefined') {
       const parsed = JSON.parse(saved);
       for (const [k, v] of Object.entries(parsed)) {
         const lowerKey = k.toLowerCase();
-        // Never allow cache to override built-in dictionary
-        if (typeof v === 'string' && !Object.hasOwn(BUILTIN_DICTIONARY, lowerKey)) {
+        // Cache contains only explicit user corrections, never generated defaults.
+        if (typeof v === 'string') {
           translitCache.set(lowerKey, v);
         }
       }
@@ -44,11 +38,9 @@ function persistCacheToStorage() {
     const obj: Record<string, string> = {};
     let count = 0;
     for (const [k, v] of translitCache.entries()) {
-      if (!Object.hasOwn(BUILTIN_DICTIONARY, k)) {
-        obj[k] = v;
-        count++;
-        if (count > 2000) break;
-      }
+      obj[k] = v;
+      count++;
+      if (count > 2000) break;
     }
     localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(obj));
   } catch {}
@@ -104,15 +96,10 @@ export async function fetchSmartWord(rawWord: string): Promise<string> {
 
   const suggestions = await fetchWordSuggestions(word);
   if (suggestions.length > 0) {
-    const best = suggestions[0];
-    translitCache.set(lower, best);
-    persistCacheToStorage();
-    return best;
+    return suggestions[0];
   }
 
-  const fallback = toBangla(word);
-  translitCache.set(lower, fallback);
-  return fallback;
+  return toBangla(word);
 }
 
 export async function smartTransliterateFullText(text: string): Promise<string> {
