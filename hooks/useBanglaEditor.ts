@@ -53,6 +53,8 @@ export function useBanglaEditor({
   const activeSuggestionsReqRef = useRef<number>(0);
 
   useEffect(() => {
+    // Mode changes invalidate suggestions requested by the previous keyboard mode.
+    activeSuggestionsReqRef.current += 1;
     avroStateRef.current = createInitialAvroState();
     const timer = setTimeout(() => {
       setCandidates([]);
@@ -79,6 +81,8 @@ export function useBanglaEditor({
   }, [text]);
 
   const commitAvroBuffer = useCallback(() => {
+    // Invalidate any in-flight lookup so an old response cannot reopen the bar.
+    activeSuggestionsReqRef.current += 1;
     avroStateRef.current = createInitialAvroState();
     setCandidates([]);
     setActiveRaw('');
@@ -120,6 +124,8 @@ export function useBanglaEditor({
 
   const updateSuggestionsForBuffer = useCallback((raw: string) => {
     if (!raw) {
+      activeSuggestionsReqRef.current += 1;
+      avroStateRef.current = createInitialAvroState();
       setCandidates([]);
       setActiveRaw('');
       setSelectedCandidateIndex(0);
@@ -315,6 +321,11 @@ export function useBanglaEditor({
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      // Native edits (paste, autofill, IME, undo) supersede phonetic key handling.
+      activeSuggestionsReqRef.current += 1;
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
       setText(e.target.value);
     },
     [setText]

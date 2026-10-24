@@ -151,12 +151,17 @@ export function AvroCandidateBar({
 
   // Keep highlighted candidate visible within internal horizontal scroll
   useEffect(() => {
-    if (selectedPillRef.current) {
-      selectedPillRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'nearest',
-      });
+    const pill = selectedPillRef.current;
+    const list = pill?.parentElement;
+    if (!pill || !list) return;
+
+    // Scroll only the candidate strip; scrollIntoView can move the page/textarea.
+    const pillLeft = pill.offsetLeft;
+    const pillRight = pillLeft + pill.offsetWidth;
+    if (pillLeft < list.scrollLeft) {
+      list.scrollLeft = pillLeft;
+    } else if (pillRight > list.scrollLeft + list.clientWidth) {
+      list.scrollLeft = pillRight - list.clientWidth;
     }
   }, [selectedIndex]);
 
@@ -172,10 +177,13 @@ export function AvroCandidateBar({
         position: 'fixed',
         top: `${coords.top}px`,
         left: `${coords.left}px`,
+        width: 'max-content',
         maxWidth: `${coords.maxWidth}px`,
+        boxSizing: 'border-box',
+        overflow: 'hidden',
         zIndex: 9999, // Highest visual priority, above modals, stacking contexts & headers
       }}
-      className="w-max max-w-[min(540px,calc(100vw-16px))] inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-emerald-500/35 dark:border-emerald-500/40 rounded-full shadow-2xl shadow-black/15 dark:shadow-black/50 select-none animate-in fade-in zoom-in-95 duration-150 pointer-events-auto"
+      className="inline-flex w-max max-w-[min(540px,calc(100vw-16px))] min-w-0 items-center gap-1 sm:gap-1.5 px-2 py-1 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-emerald-500/35 dark:border-emerald-500/40 rounded-full shadow-2xl shadow-black/15 dark:shadow-black/50 select-none animate-in fade-in zoom-in-95 duration-150 pointer-events-auto"
     >
       {/* Raw Latin Token Badge */}
       <Badge
@@ -190,7 +198,7 @@ export function AvroCandidateBar({
       <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 shrink-0" />
 
       {/* Candidate Pills - Dynamic sizing & Horizontally Scrollable when items overflow */}
-      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x max-w-[340px] sm:max-w-[420px]">
+      <div className="flex min-w-0 max-w-[min(420px,calc(100vw-180px))] items-center gap-1 overflow-x-auto overscroll-x-contain no-scrollbar py-0.5 touch-pan-x">
         {candidates.slice(0, 7).map((cand, idx) => {
           const isSelected = idx === selectedIndex;
           return (
