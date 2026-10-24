@@ -40,7 +40,7 @@ test('text edit handles UTF-16 indices consistently with DOM selections', () => 
 test('Jatiyo mapping resolves default and shifted keys', () => {
   assert.equal(getJatiyoChar({ key: 'q' }), 'ঙ');
   assert.equal(getJatiyoChar({ key: 'Q', shiftKey: true }), 'ং');
-  assert.equal(getJatiyoChar({ key: 'a', shiftKey: true }), 'ৗ');
+  assert.equal(getJatiyoChar({ key: 'A', shiftKey: true }), 'ৗ');
 });
 
 test('Jatiyo mapping resolves AltGr and shift+AltGr keys', () => {
