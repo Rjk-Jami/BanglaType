@@ -29,7 +29,6 @@ export function useBanglaInput({
 }: UseBanglaInputProps = {}) {
   const [value, setValueState] = useState<string>(initialValue);
   const onValueChangeRef = useRef(onValueChange);
-  const previousInitialValueRef = useRef(initialValue);
   const previousNotifiedValueRef = useRef(initialValue);
   const [candidates, setCandidates] = useState<string[]>([]);
   const [activeRaw, setActiveRaw] = useState<string>('');
@@ -51,25 +50,10 @@ export function useBanglaInput({
     }
   }, [value]);
 
-  useEffect(() => {
-    // initialValue is an initial/uncontrolled value. When onValueChange is
-    // supplied, treat it as an observer/controlled integration and never reset
-    // the live typing buffer on every parent echo of the current value.
-    if (
-      previousInitialValueRef.current !== initialValue &&
-      !onValueChangeRef.current
-    ) {
-      previousInitialValueRef.current = initialValue;
-      setValue(initialValue);
-      avroStateRef.current = createInitialAvroState();
-      activeSuggestionsReqRef.current += 1;
-      setCandidates([]);
-      setActiveRaw('');
-      setSelectedCandidateIndex(0);
-    } else {
-      previousInitialValueRef.current = initialValue;
-    }
-  }, [initialValue, setValue]);
+  // initialValue is intentionally initial-only. Parent state echoes arrive through
+  // onValueChange and must not reset an in-progress Avro composition buffer.
+
+
 
   const avroStateRef = useRef<AvroTypingState>(createInitialAvroState());
   const pendingCaretRef = useRef<number | null>(null);
