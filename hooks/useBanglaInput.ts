@@ -27,12 +27,38 @@ export function useBanglaInput({
   initialValue = '',
   onValueChange,
 }: UseBanglaInputProps = {}) {
-  const [value, setValue] = useState<string>(initialValue);
+  const [value, setValueState] = useState<string>(initialValue);
+  const onValueChangeRef = useRef(onValueChange);
+  const previousInitialValueRef = useRef(initialValue);
   const [candidates, setCandidates] = useState<string[]>([]);
   const [activeRaw, setActiveRaw] = useState<string>('');
   const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<number>(0);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const setValue = useCallback((nextValue: string | ((previous: string) => string)) => {
+    setValueState(nextValue);
+  }, []);
+
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange;
+  }, [onValueChange]);
+
+  useEffect(() => {
+    onValueChangeRef.current?.(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (previousInitialValueRef.current !== initialValue) {
+      previousInitialValueRef.current = initialValue;
+      setValue(initialValue);
+      avroStateRef.current = createInitialAvroState();
+      activeSuggestionsReqRef.current += 1;
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
+    }
+  }, [initialValue, setValue]);
+
   const avroStateRef = useRef<AvroTypingState>(createInitialAvroState());
   const pendingCaretRef = useRef<number | null>(null);
   const activeSuggestionsReqRef = useRef<number>(0);
@@ -91,7 +117,6 @@ export function useBanglaInput({
       avroStateRef.current = res.newState;
       pendingCaretRef.current = res.newCaret;
       setValue(res.newText);
-      onValueChange?.(res.newText);
       setCandidates([]);
       setActiveRaw('');
       setSelectedCandidateIndex(0);
@@ -135,13 +160,7 @@ export function useBanglaInput({
         // Tab (and Shift+Tab) switches / cycles through the available candidate options
         if (e.key === 'Tab') {
           e.preventDefault();
-          if (e.shiftKey) {
-            setSelectedCandidateIndex(
-              (prev) => (prev - 1 + candidates.length) % candidates.length
-            );
-          } else {
-            setSelectedCandidateIndex((prev) => (prev + 1) % candidates.length);
-          }
+          selectCandidate(selectedCandidateIndex, false);
           return;
         }
 
@@ -229,7 +248,6 @@ export function useBanglaInput({
           const newText = before + mappedChar + after;
           pendingCaretRef.current = start + mappedChar.length;
           setValue(newText);
-          onValueChange?.(newText);
         } else if (/^[a-zA-Z]$/.test(e.key)) {
           e.preventDefault();
         }
@@ -255,8 +273,7 @@ export function useBanglaInput({
           avroStateRef.current = res.newState;
           pendingCaretRef.current = res.newCaret;
           setValue(res.newText);
-          onValueChange?.(res.newText);
-
+    
           updateSuggestionsForBuffer(res.newState.rawBuffer);
         } else {
           commitAvroBuffer();
@@ -288,7 +305,6 @@ export function useBanglaInput({
         setActiveRaw('');
         setSelectedCandidateIndex(0);
         setValue(nextValue);
-        onValueChange?.(nextValue);
         commitAvroBuffer();
         return;
       }
@@ -321,8 +337,7 @@ export function useBanglaInput({
             const newCaret = edit.start + mappedChar.length;
             pendingCaretRef.current = newCaret;
             setValue(newText);
-            onValueChange?.(newText);
-            commitAvroBuffer();
+              commitAvroBuffer();
             return;
           }
         } else if (mode === 'avro') {
@@ -338,8 +353,7 @@ export function useBanglaInput({
             avroStateRef.current = result.newState;
             pendingCaretRef.current = result.newCaret;
             setValue(result.newText);
-            onValueChange?.(result.newText);
-            updateSuggestionsForBuffer(result.newState.rawBuffer);
+              updateSuggestionsForBuffer(result.newState.rawBuffer);
 
             if (result.committedWord) {
               setCachedWord(result.committedWord.raw, result.committedWord.bangla);
@@ -356,7 +370,6 @@ export function useBanglaInput({
       setActiveRaw('');
       setSelectedCandidateIndex(0);
       setValue(nextValue);
-      onValueChange?.(nextValue);
       if (mode === 'avro' && avroStateRef.current.rawBuffer) {
         commitAvroBuffer();
       } else if (mode !== 'avro') {
@@ -378,7 +391,6 @@ export function useBanglaInput({
 
   const clearValue = useCallback(() => {
     setValue('');
-    onValueChange?.('');
     commitAvroBuffer();
     inputRef.current?.focus();
   }, [commitAvroBuffer, onValueChange]);
