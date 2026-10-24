@@ -52,7 +52,13 @@ export function useBanglaInput({
   }, [value]);
 
   useEffect(() => {
-    if (previousInitialValueRef.current !== initialValue) {
+    // initialValue is an initial/uncontrolled value. When onValueChange is
+    // supplied, treat it as an observer/controlled integration and never reset
+    // the live typing buffer on every parent echo of the current value.
+    if (
+      previousInitialValueRef.current !== initialValue &&
+      !onValueChangeRef.current
+    ) {
       previousInitialValueRef.current = initialValue;
       setValue(initialValue);
       avroStateRef.current = createInitialAvroState();
@@ -60,6 +66,8 @@ export function useBanglaInput({
       setCandidates([]);
       setActiveRaw('');
       setSelectedCandidateIndex(0);
+    } else {
+      previousInitialValueRef.current = initialValue;
     }
   }, [initialValue, setValue]);
 
