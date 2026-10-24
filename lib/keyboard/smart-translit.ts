@@ -1,118 +1,100 @@
 'use client';
 
-import {
-  toBangla,
-  isBangla,
-  BUILTIN_DICTIONARY,
-  getAvroCandidates,
-} from './avro-phonetic-engine';
+import { toBangla, isBangla, getAvroCandidates } from './avro-phonetic-engine';
 
-const STORAGE_CACHE_KEY = 'banglatype_smart_cache_v4';
+/**
+ * Only explicit user corrections belong in this cache.
+ * Generated transliterations are never persisted as if they were verified words.
+ * v5 intentionally ignores the old v4 cache, which was prefilled with dictionary
+ * translations and automatic guesses.
+ */
+const STORAGE_CACHE_KEY = 'banglatype_user_corrections_v5';
 const translitCache = new Map<string, string>();
 const candidateCache = new Map<string, string[]>();
 
-// Prepopulate from built-in dictionary
-for (const [key, val] of Object.entries(BUILTIN_DICTIONARY)) {
-  translitCache.set(key.toLowerCase(), val);
-}
-
-// Load user customizations from localStorage & clean up obsolete caches
 if (typeof window !== 'undefined') {
   try {
-    // Clean up older buggy cache keys
-    localStorage.removeItem('banglatype_smart_cache_v1');
-    localStorage.removeItem('banglatype_smart_cache_v2');
-    localStorage.removeItem('banglatype_smart_cache_v3');
-
     const saved = localStorage.getItem(STORAGE_CACHE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      for (const [k, v] of Object.entries(parsed)) {
-        const lowerKey = k.toLowerCase();
-        // Never allow cache to override built-in dictionary
-        if (typeof v === 'string' && !Object.hasOwn(BUILTIN_DICTIONARY, lowerKey)) {
-          translitCache.set(lowerKey, v);
+      const parsed: unknown = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (const [key, value] of Object.entries(parsed)) {
+          const normalizedKey = key.toLowerCase().trim();
+          if (normalizedKey && typeof value === 'string' && value.trim()) {
+            translitCache.set(normalizedKey, value);
+          }
         }
       }
     }
-  } catch {}
+  } catch {
+    // Ignore malformed or unavailable local storage.
+  }
 }
 
 function persistCacheToStorage() {
   if (typeof window === 'undefined') return;
   try {
     const obj: Record<string, string> = {};
-    let count = 0;
-    for (const [k, v] of translitCache.entries()) {
-      if (!Object.hasOwn(BUILTIN_DICTIONARY, k)) {
-        obj[k] = v;
-        count++;
-        if (count > 2000) break;
-      }
+    for (const [key, value] of translitCache.entries()) {
+      obj[key] = value;
     }
     localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(obj));
-  } catch {}
+  } catch {
+    // Storage may be unavailable in private browsing or restricted contexts.
+  }
 }
 
+/** Return a user-saved correction, or null when none exists. */
 export function getCachedWord(word: string): string | null {
   if (!word) return null;
   return translitCache.get(word.toLowerCase().trim()) || null;
 }
 
+/** Explicitly save a user's chosen transliteration. */
 export function setCachedWord(word: string, bangla: string) {
-  if (!word || !bangla) return;
+  if (!word.trim() || !bangla.trim()) return;
   const lower = word.toLowerCase().trim();
   translitCache.set(lower, bangla);
+  candidateCache.delete(lower);
   persistCacheToStorage();
 }
 
 /**
- * Fetch candidate suggestions for an in-progress word.
- * 100% Native Avro phonetic intelligence, dictionary prefix matching, and spelling variations.
+ * Generate suggestions from phonetic rules and spelling variants.
+ * No built-in wordlist or dictionary prefix scan is used.
  */
 export async function fetchWordSuggestions(rawWord: string): Promise<string[]> {
   const word = rawWord.trim();
   if (!word) return [];
   const lower = word.toLowerCase();
 
-  // Check cache
   if (candidateCache.has(lower)) {
-    return candidateCache.get(lower)!;
+    return [...candidateCache.get(lower)!];
   }
 
-  // 1. Get immediate candidates from native phonetic engine & dictionary
-  const candidates: string[] = getAvroCandidates(word);
-
-  // If user has a cached custom translation, prioritize it
-  const cached = translitCache.get(lower);
-  if (cached && !candidates.includes(cached)) {
-    candidates.unshift(cached);
+  const candidates = getAvroCandidates(word);
+  const custom = translitCache.get(lower);
+  if (custom) {
+    const withoutDuplicate = candidates.filter((candidate) => candidate !== custom);
+    withoutDuplicate.unshift(custom);
+    candidateCache.set(lower, withoutDuplicate);
+    return [...withoutDuplicate];
   }
 
   candidateCache.set(lower, candidates);
-  return candidates;
+  return [...candidates];
 }
 
+/** Convert a word using an explicit correction when available, otherwise phonetic rules. */
 export async function fetchSmartWord(rawWord: string): Promise<string> {
   const word = rawWord.trim();
   if (!word) return '';
 
-  const lower = word.toLowerCase();
-  if (translitCache.has(lower)) {
-    return translitCache.get(lower)!;
-  }
+  const custom = getCachedWord(word);
+  if (custom) return custom;
 
   const suggestions = await fetchWordSuggestions(word);
-  if (suggestions.length > 0) {
-    const best = suggestions[0];
-    translitCache.set(lower, best);
-    persistCacheToStorage();
-    return best;
-  }
-
-  const fallback = toBangla(word);
-  translitCache.set(lower, fallback);
-  return fallback;
+  return suggestions[0] ?? toBangla(word);
 }
 
 export async function smartTransliterateFullText(text: string): Promise<string> {
@@ -121,16 +103,16 @@ export async function smartTransliterateFullText(text: string): Promise<string> 
   const tokens = text.split(/(\s+|[.,!?;:()\[\]{}'"\-]+)/);
 
   const convertedTokens = await Promise.all(
-    tokens.map(async (tok) => {
+    tokens.map(async (token) => {
       if (
-        !tok ||
-        /^\s+$/.test(tok) ||
-        /^[.,!?;:()\[\]{}'"\-]+$/.test(tok) ||
-        isBangla(tok)
+        !token ||
+        /^\s+$/.test(token) ||
+        /^[.,!?;:()\[\]{}'"\-]+$/.test(token) ||
+        isBangla(token)
       ) {
-        return tok;
+        return token;
       }
-      return await fetchSmartWord(tok);
+      return fetchSmartWord(token);
     })
   );
 

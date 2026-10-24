@@ -319,7 +319,7 @@ import {
 const bangla = parseAvroText('amar sonar bangla');
 console.log(bangla); // "আমার সোনার বাংলা"
 
-// 2. Intelligent full-text transliteration with dictionary refinement
+// 2. Dictionary-free full-text phonetic transliteration
 const accurateBangla = await smartTransliterateFullText('ami bangladeshke bhalobashi');
 console.log(accurateBangla); // "আমি বাংলাদেশকে ভালোবাসি"
 
@@ -327,10 +327,23 @@ console.log(accurateBangla); // "আমি বাংলাদেশকে ভা
 const char = getJatiyoChar({ key: 'd', shiftKey: false });
 console.log(char); // "ি"
 
-// 4. Fetch dictionary suggestions for phonetic word
+// 4. Generate phonetic candidates for a word
 const candidates = await fetchWordSuggestions('shadhinota');
 console.log(candidates); // ["স্বাধীনতা", "স্বাধীনতার", ...]
 ```
+
+---
+
+## Dictionary-Free Phonetic Conversion
+
+The default Avro conversion path uses phonetic rules and spelling-variant candidates; it does not require adding each new word to a built-in wordlist. User corrections are optional and stored separately from generated conversions.
+
+- `parseAvroText(text)` uses phonetic rules by default.
+- `fetchWordSuggestions(word)` generates candidates from the phonetic engine and spelling variants; it does not scan built-in dictionary prefixes.
+- `setCachedWord(raw, bangla)` is optional and intended for an explicit user correction, not for seeding a required wordlist.
+- Legacy dictionary-based parsing remains available only when explicitly requested through `parse(text, { dictionary: true })` or by passing a custom dictionary.
+
+Dictionary-free conversion cannot always resolve homophones or ambiguous spellings. Candidate quality and compatibility must be checked against verified Avro reference outputs before claiming full Avro equivalence.
 
 ---
 

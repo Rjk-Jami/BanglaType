@@ -1,4 +1,4 @@
-import { toBangla, getAvroCandidates, BUILTIN_DICTIONARY } from './avro-phonetic-engine';
+import { toBangla, getAvroCandidates } from './avro-phonetic-engine';
 import { getCachedWord } from './smart-translit';
 
 export interface AvroTypingState {
@@ -57,10 +57,7 @@ export function isIgnoredKey(key: string): boolean {
 
 export function getConvertedToken(raw: string): string {
   if (!raw) return '';
-  const lower = raw.toLowerCase().trim();
-  if (Object.hasOwn(BUILTIN_DICTIONARY, lower)) {
-    return BUILTIN_DICTIONARY[lower];
-  }
+  // Explicit user corrections may override generated phonetic output.
   const cached = getCachedWord(raw);
   if (cached) return cached;
   const candidates = getAvroCandidates(raw);
