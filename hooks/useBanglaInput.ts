@@ -30,6 +30,7 @@ export function useBanglaInput({
   const [value, setValueState] = useState<string>(initialValue);
   const onValueChangeRef = useRef(onValueChange);
   const previousInitialValueRef = useRef(initialValue);
+  const previousNotifiedValueRef = useRef(initialValue);
   const [candidates, setCandidates] = useState<string[]>([]);
   const [activeRaw, setActiveRaw] = useState<string>('');
   const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<number>(0);
@@ -44,7 +45,10 @@ export function useBanglaInput({
   }, [onValueChange]);
 
   useEffect(() => {
-    onValueChangeRef.current?.(value);
+    if (previousNotifiedValueRef.current !== value) {
+      previousNotifiedValueRef.current = value;
+      onValueChangeRef.current?.(value);
+    }
   }, [value]);
 
   useEffect(() => {
@@ -122,7 +126,7 @@ export function useBanglaInput({
       setSelectedCandidateIndex(0);
       input.focus();
     },
-    [candidates, value, activeRaw, commitAvroBuffer, onValueChange]
+    [candidates, value, activeRaw, commitAvroBuffer]
   );
 
   const updateSuggestionsForBuffer = useCallback((raw: string) => {
@@ -157,7 +161,7 @@ export function useBanglaInput({
 
       // Handle keyboard navigation for Avro candidate suggestions
       if (mode === 'avro' && candidates.length > 0) {
-        // Tab (and Shift+Tab) switches / cycles through the available candidate options
+        // Tab commits the currently highlighted candidate.
         if (e.key === 'Tab') {
           e.preventDefault();
           selectCandidate(selectedCandidateIndex, false);
@@ -273,7 +277,6 @@ export function useBanglaInput({
           avroStateRef.current = res.newState;
           pendingCaretRef.current = res.newCaret;
           setValue(res.newText);
-    
           updateSuggestionsForBuffer(res.newState.rawBuffer);
         } else {
           commitAvroBuffer();
@@ -288,7 +291,6 @@ export function useBanglaInput({
       commitAvroBuffer,
       selectCandidate,
       updateSuggestionsForBuffer,
-      onValueChange,
     ]
   );
 
@@ -337,7 +339,7 @@ export function useBanglaInput({
             const newCaret = edit.start + mappedChar.length;
             pendingCaretRef.current = newCaret;
             setValue(newText);
-              commitAvroBuffer();
+            commitAvroBuffer();
             return;
           }
         } else if (mode === 'avro') {
@@ -353,7 +355,7 @@ export function useBanglaInput({
             avroStateRef.current = result.newState;
             pendingCaretRef.current = result.newCaret;
             setValue(result.newText);
-              updateSuggestionsForBuffer(result.newState.rawBuffer);
+            updateSuggestionsForBuffer(result.newState.rawBuffer);
 
             if (result.committedWord) {
               setCachedWord(result.committedWord.raw, result.committedWord.bangla);
@@ -380,7 +382,6 @@ export function useBanglaInput({
       value,
       mode,
       commitAvroBuffer,
-      onValueChange,
       updateSuggestionsForBuffer,
     ]
   );
@@ -393,7 +394,7 @@ export function useBanglaInput({
     setValue('');
     commitAvroBuffer();
     inputRef.current?.focus();
-  }, [commitAvroBuffer, onValueChange]);
+  }, [commitAvroBuffer]);
 
   const hasCandidateBar = Boolean(
     mode === 'avro' && activeRaw && candidates.length > 0
