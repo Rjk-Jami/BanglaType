@@ -30,18 +30,22 @@ export function useBanglaEditor({
   onValueChange,
 }: UseBanglaEditorProps = {}) {
   const [text, setTextState] = useState<string>(initialValue);
+  const textRevisionRef = useRef(0);
   const onValueChangeRef = useRef(onValueChange);
   useEffect(() => {
     onValueChangeRef.current = onValueChange;
   }, [onValueChange]);
 
   const setText = useCallback((newVal: string | ((prev: string) => string)) => {
-    setTextState((prev) => {
-      const resolved = typeof newVal === 'function' ? newVal(prev) : newVal;
-      onValueChangeRef.current?.(resolved);
-      return resolved;
-    });
+    // Advance synchronously so pending async refinements cannot overwrite newer edits.
+    textRevisionRef.current += 1;
+    setTextState(newVal);
   }, []);
+
+  // Keep updater functions pure; React may invoke them more than once in Strict Mode.
+  useEffect(() => {
+    onValueChangeRef.current?.(text);
+  }, [text]);
 
   const [copied, setCopied] = useState(false);
   const [candidates, setCandidates] = useState<string[]>([]);
@@ -159,14 +163,10 @@ export function useBanglaEditor({
       if (mode === 'avro' && candidates.length > 0) {
         // Tab (and Shift+Tab) switches / cycles through the available candidate options
         if (e.key === 'Tab') {
+          // Tab commits the highlighted candidate; it must not move focus to an
+          // off-screen suggestion or silently cycle through the list.
           e.preventDefault();
-          if (e.shiftKey) {
-            setSelectedCandidateIndex(
-              (prev) => (prev - 1 + candidates.length) % candidates.length
-            );
-          } else {
-            setSelectedCandidateIndex((prev) => (prev + 1) % candidates.length);
-          }
+          selectCandidate(selectedCandidateIndex, false);
           return;
         }
 
@@ -431,11 +431,17 @@ export function useBanglaEditor({
             const newText = before + fastConverted + after;
             pendingCaretRef.current = start + fastConverted.length;
             setText(newText);
+            const pasteRevision = textRevisionRef.current;
 
             smartTransliterateFullText(pastedText).then((refined) => {
-              if (refined && refined !== fastConverted) {
+              if (
+                refined &&
+                refined !== fastConverted &&
+                pasteRevision === textRevisionRef.current
+              ) {
                 setText((curr) => {
                   if (
+                    pasteRevision === textRevisionRef.current &&
                     curr.slice(start, start + fastConverted.length) ===
                     fastConverted
                   ) {
@@ -466,10 +472,16 @@ export function useBanglaEditor({
   const convertCurrentTextToBangla = useCallback(async () => {
     if (!text.trim()) return;
     commitAvroBuffer();
-    const fast = convertToBangla(text);
+    const sourceText = text;
+    const fast = convertToBangla(sourceText);
     setText(fast);
-    const refined = await smartTransliterateFullText(text);
-    if (refined && refined !== fast) {
+    const conversionRevision = textRevisionRef.current;
+    const refined = await smartTransliterateFullText(sourceText);
+    if (
+      refined &&
+      refined !== fast &&
+      conversionRevision === textRevisionRef.current
+    ) {
       setText(refined);
     }
   }, [text, commitAvroBuffer, setText]);
