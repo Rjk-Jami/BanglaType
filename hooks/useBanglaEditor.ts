@@ -30,7 +30,6 @@ export function useBanglaEditor({
   onValueChange,
 }: UseBanglaEditorProps = {}) {
   const [text, setTextState] = useState<string>(initialValue);
-  const previousInitialValueRef = useRef(initialValue);
   const previousNotifiedTextRef = useRef(initialValue);
   const textRevisionRef = useRef(0);
   const onValueChangeRef = useRef(onValueChange);
@@ -52,18 +51,10 @@ export function useBanglaEditor({
     }
   }, [text]);
 
-  useEffect(() => {
-    if (previousInitialValueRef.current !== initialValue) {
-      previousInitialValueRef.current = initialValue;
-      textRevisionRef.current += 1;
-      setTextState(initialValue);
-      avroStateRef.current = createInitialAvroState();
-      activeSuggestionsReqRef.current += 1;
-      setCandidates([]);
-      setActiveRaw('');
-      setSelectedCandidateIndex(0);
-    }
-  }, [initialValue]);
+  // initialValue is initial-only; parent echoes through onValueChange must not
+  // reset a live phonetic composition buffer.
+
+
 
   const [copied, setCopied] = useState(false);
   const [candidates, setCandidates] = useState<string[]>([]);
