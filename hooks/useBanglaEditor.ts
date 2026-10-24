@@ -457,27 +457,14 @@ export function useBanglaEditor({
                 refined !== fastConverted &&
                 pasteRevision === textRevisionRef.current
               ) {
-                setText((curr) => {
-                  if (
-                    pasteRevision === textRevisionRef.current &&
-                    curr.slice(start, start + fastConverted.length) ===
-                    fastConverted
-                  ) {
-                    const diff = refined.length - fastConverted.length;
-                    if (
-                      pendingCaretRef.current !== null &&
-                      pendingCaretRef.current >= start + fastConverted.length
-                    ) {
-                      pendingCaretRef.current += diff;
-                    }
-                    return (
-                      curr.slice(0, start) +
-                      refined +
-                      curr.slice(start + fastConverted.length)
-                    );
-                  }
-                  return curr;
-                });
+                const diff = refined.length - fastConverted.length;
+                if (
+                  pendingCaretRef.current !== null &&
+                  pendingCaretRef.current >= start + fastConverted.length
+                ) {
+                  pendingCaretRef.current += diff;
+                }
+                setText(before + refined + after);
               }
             });
           }
