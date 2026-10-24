@@ -30,6 +30,8 @@ export function useBanglaEditor({
   onValueChange,
 }: UseBanglaEditorProps = {}) {
   const [text, setTextState] = useState<string>(initialValue);
+  const previousInitialValueRef = useRef(initialValue);
+  const previousNotifiedTextRef = useRef(initialValue);
   const textRevisionRef = useRef(0);
   const onValueChangeRef = useRef(onValueChange);
   useEffect(() => {
@@ -44,8 +46,24 @@ export function useBanglaEditor({
 
   // Keep updater functions pure; React may invoke them more than once in Strict Mode.
   useEffect(() => {
-    onValueChangeRef.current?.(text);
+    if (previousNotifiedTextRef.current !== text) {
+      previousNotifiedTextRef.current = text;
+      onValueChangeRef.current?.(text);
+    }
   }, [text]);
+
+  useEffect(() => {
+    if (previousInitialValueRef.current !== initialValue) {
+      previousInitialValueRef.current = initialValue;
+      textRevisionRef.current += 1;
+      setTextState(initialValue);
+      avroStateRef.current = createInitialAvroState();
+      activeSuggestionsReqRef.current += 1;
+      setCandidates([]);
+      setActiveRaw('');
+      setSelectedCandidateIndex(0);
+    }
+  }, [initialValue]);
 
   const [copied, setCopied] = useState(false);
   const [candidates, setCandidates] = useState<string[]>([]);
