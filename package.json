@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:avro": "tsc --module commonjs --target ES2020 --moduleResolution node --skipLibCheck --noEmit false --outDir .test-build lib/keyboard/avro-patterns.ts lib/keyboard/avro-phonetic-engine.ts && node --test tests/avro-phonetic-engine.test.cjs"
+    "test:avro": "tsc --module commonjs --target ES2020 --moduleResolution node --skipLibCheck --noEmit false --outDir .test-build lib/keyboard/avro-patterns.ts lib/keyboard/avro-phonetic-engine.ts lib/keyboard/jatiyo-map.ts lib/keyboard/text-edit.ts && node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
