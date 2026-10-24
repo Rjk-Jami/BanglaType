@@ -385,8 +385,8 @@ To guarantee crisp conjuncts (যুক্তাক্ষর) like `ক্ষ`, 
 
 | Key / Action | Context | Result |
 | :--- | :--- | :--- |
-| <kbd>Tab</kbd> | Suggestion Dropdown Open | Cycle to next suggestion candidate |
-| <kbd>Shift</kbd> + <kbd>Tab</kbd> | Suggestion Dropdown Open | Cycle to previous suggestion candidate |
+| <kbd>Tab</kbd> | Suggestion Dropdown Open | Commit the currently highlighted candidate |
+| <kbd>Shift</kbd> + <kbd>Tab</kbd> | Suggestion Dropdown Open | Commit the currently highlighted candidate; focus does not move to an off-screen option |
 | <kbd>Enter</kbd> | Suggestion Dropdown Open | Confirm and insert highlighted suggestion |
 | <kbd>Space</kbd> | Suggestion Dropdown Open | Confirm suggestion and insert trailing space |
 | <kbd>Escape</kbd> | Suggestion Dropdown Open | Dismiss candidate suggestion dropdown |
