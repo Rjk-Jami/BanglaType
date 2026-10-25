@@ -121,6 +121,13 @@ export function AvroCandidateBar({
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
 
+    // iOS Safari changes the Visual Viewport when its native keyboard opens,
+    // closes, or pans the page. The layout viewport may not emit window resize
+    // or scroll for every one of these changes, so subscribe directly as well.
+    const visualViewport = window.visualViewport;
+    visualViewport?.addEventListener('resize', updatePosition);
+    visualViewport?.addEventListener('scroll', updatePosition);
+
     const targetEl = targetRef?.current;
     if (targetEl) {
       targetEl.addEventListener('scroll', updatePosition, { passive: true });
@@ -140,6 +147,8 @@ export function AvroCandidateBar({
     return () => {
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
+      visualViewport?.removeEventListener('resize', updatePosition);
+      visualViewport?.removeEventListener('scroll', updatePosition);
       if (targetEl) {
         targetEl.removeEventListener('scroll', updatePosition);
       }
