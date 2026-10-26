@@ -144,13 +144,18 @@ export function getCaretCoordinates(
         ? parsedFontSize * 1.3
         : 24;
 
-  // Translate relative offset within element to viewport coordinates
+  // Translate the measured caret position into viewport coordinates.
+  // iOS Safari can report an unreliable marker.offsetTop for single-line inputs
+  // because the mirror's line box does not match the native input's baseline.
+  // A single-line input has only one caret line, so center it vertically.
   const caretX = rect.left + marker.offsetLeft + borderLeft - inputElement.scrollLeft;
-  const caretY = rect.top + marker.offsetTop + borderTop - inputElement.scrollTop;
+  const caretY = isInput
+    ? rect.top + Math.max(0, (rect.height - height) / 2)
+    : rect.top + marker.offsetTop + borderTop - inputElement.scrollTop;
 
-  // Clamp within the element's visible bounding box
+  // Clamp within the element's visible bounding box.
   const clampedX = Math.min(Math.max(caretX, rect.left), rect.right);
-  const clampedY = Math.min(Math.max(caretY, rect.top), rect.bottom);
+  const clampedY = Math.min(Math.max(caretY, rect.top), Math.max(rect.top, rect.bottom - height));
 
   return {
     top: clampedY,
