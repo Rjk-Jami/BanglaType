@@ -25,7 +25,7 @@ export function DocQuickStartSection() {
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1  gap-6">
         {/* 1.A Single Line Input */}
         <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#121E19] border border-[#D9E2DD] dark:border-[#20312B] shadow-xs space-y-4 flex flex-col justify-between">
           <div className="space-y-2">

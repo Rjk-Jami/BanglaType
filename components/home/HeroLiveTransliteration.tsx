@@ -3,23 +3,86 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Terminal, Copy, Check, ArrowRight, Sparkles, CornerDownLeft } from 'lucide-react';
-import { parseAvroText } from '@/lib/keyboard/avro-engine';
+import { Terminal, Copy, Check, ArrowRight, Sparkles, RotateCcw } from 'lucide-react';
+import { AvroCandidateBar } from '@/components/editor/AvroCandidateBar';
+import {
+  processAvroKeystroke,
+  createInitialAvroState,
+  AvroTypingState,
+  parseAvroText,
+} from '@/lib/keyboard/avro-engine';
+import { getAvroCandidates } from '@/lib/keyboard/avro-phonetic-engine';
 
-const DEMO_KEYS = [
-  'a', 'm', 'i', ' ',
-  'b', 'a', 'n', 'g', 'l', 'a', 'y', ' ',
-  'g', 'a', 'n', ' ',
-  'g', 'a', 'i',
+interface Step {
+  text: string;
+  caret: number;
+  raw: string;
+  candidates: string[];
+  delay: number;
+}
+
+const ANIMATION_STEPS: Step[] = [
+  // 1. Amar -> আমার
+  { text: 'অ', caret: 1, raw: 'A', candidates: ['আমার', 'অমর', 'আমর'], delay: 130 },
+  { text: 'আম', caret: 2, raw: 'Am', candidates: ['আমার', 'অমর', 'আম'], delay: 120 },
+  { text: 'আমা', caret: 3, raw: 'Ama', candidates: ['আমার', 'অমর', 'আমা'], delay: 110 },
+  { text: 'আমার', caret: 4, raw: 'Amar', candidates: ['আমার', 'অমর', 'আমর'], delay: 240 },
+  { text: 'আমার ', caret: 5, raw: '', candidates: [], delay: 190 },
+
+  // 2. sonar -> সোনার
+  { text: 'আমার স', caret: 6, raw: 's', candidates: ['সোনার', 'সনার'], delay: 130 },
+  { text: 'আমার সো', caret: 7, raw: 'so', candidates: ['সোনার', 'সোনা', 'স'], delay: 120 },
+  { text: 'আমার সোন', caret: 8, raw: 'son', candidates: ['সোনার', 'সোনা'], delay: 110 },
+  { text: 'আমার সোনা', caret: 9, raw: 'sona', candidates: ['সোনার', 'সোনা'], delay: 110 },
+  { text: 'আমার সোনার', caret: 10, raw: 'sonar', candidates: ['সোনার', 'সনার'], delay: 250 },
+  { text: 'আমার সোনার ', caret: 11, raw: '', candidates: [], delay: 190 },
+
+  // 3. bangla / bangal -> বাংলা
+  { text: 'আমার সোনার ব', caret: 12, raw: 'b', candidates: ['বাংলা', 'বাঙলা'], delay: 130 },
+  { text: 'আমার সোনার বা', caret: 13, raw: 'ba', candidates: ['বাংলা', 'বাঙলা'], delay: 110 },
+  { text: 'আমার সোনার বান', caret: 14, raw: 'ban', candidates: ['বাংলা', 'বাঙলা'], delay: 110 },
+  { text: 'আমার সোনার বাং', caret: 15, raw: 'bang', candidates: ['বাংলা', 'বাঙলা'], delay: 110 },
+  { text: 'আমার সোনার বাংল', caret: 16, raw: 'bangl', candidates: ['বাংলা', 'বাঙলা'], delay: 110 },
+  { text: 'আমার সোনার বাংলা', caret: 17, raw: 'bangla', candidates: ['বাংলা', 'বাঙলা'], delay: 250 },
+  { text: 'আমার সোনার বাংলা ', caret: 18, raw: '', candidates: [], delay: 190 },
+
+  // 4. ami -> আমি
+  { text: 'আমার সোনার বাংলা অ', caret: 19, raw: 'a', candidates: ['আমি', 'অমি'], delay: 130 },
+  { text: 'আমার সোনার বাংলা আম', caret: 20, raw: 'am', candidates: ['আমি', 'অমি'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি', caret: 21, raw: 'ami', candidates: ['আমি', 'অমি'], delay: 230 },
+  { text: 'আমার সোনার বাংলা আমি ', caret: 22, raw: '', candidates: [], delay: 190 },
+
+  // 5. tomai -> তোমায়
+  { text: 'আমার সোনার বাংলা আমি ত', caret: 23, raw: 't', candidates: ['তোমায়', 'তোমাই'], delay: 130 },
+  { text: 'আমার সোনার বাংলা আমি তো', caret: 24, raw: 'to', candidates: ['তোমায়', 'তোমাই'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোম', caret: 25, raw: 'tom', candidates: ['তোমায়', 'তোমাই'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোমা', caret: 26, raw: 'toma', candidates: ['তোমায়', 'তোমাই'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোমায়', caret: 27, raw: 'tomai', candidates: ['তোমায়', 'তোমাই'], delay: 250 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ', caret: 28, raw: '', candidates: [], delay: 190 },
+
+  // 6. valobashi -> ভালোবাসি
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভ', caret: 29, raw: 'v', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 130 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভা', caret: 30, raw: 'va', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভাল', caret: 31, raw: 'val', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভালো', caret: 32, raw: 'valo', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভালোব', caret: 33, raw: 'valob', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভালোবাসা', caret: 34, raw: 'valoba', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 110 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভালোবাস', caret: 35, raw: 'valobas', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 100 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভালোবাস', caret: 36, raw: 'valobash', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 100 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভালোবাসি', caret: 37, raw: 'valobashi', candidates: ['ভালোবাসি', 'ভালবাসি'], delay: 280 },
+  { text: 'আমার সোনার বাংলা আমি তোমায় ভালোবাসি', caret: 37, raw: '', candidates: [], delay: 2600 },
 ];
 
 export function HeroLiveTransliteration() {
   const [copied, setCopied] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
   const [text, setText] = useState('');
-  const [currentBuffer, setCurrentBuffer] = useState('');
-  const [activeCandidates, setActiveCandidates] = useState<string[]>([]);
+  const [activeRaw, setActiveRaw] = useState('');
+  const [candidates, setCandidates] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const avroStateRef = useRef<AvroTypingState>(createInitialAvroState());
 
   const handleCopyInstall = async () => {
     try {
@@ -31,47 +94,36 @@ export function HeroLiveTransliteration() {
     }
   };
 
-  // Typed-in animation for initial load (signature live transliteration moment)
+  // Continuous live transliteration animation loop
   useEffect(() => {
     if (userInteracted) return;
 
-    let keyIndex = 0;
-    let accumulatedText = '';
-    let buffer = '';
+    let isMounted = true;
+    let stepIndex = 0;
     let timer: NodeJS.Timeout | null = null;
 
-    const step = () => {
-      if (userInteracted || keyIndex >= DEMO_KEYS.length) return;
+    const runStep = () => {
+      if (!isMounted || userInteracted) return;
 
-      const char = DEMO_KEYS[keyIndex];
-      keyIndex++;
+      const currentStep = ANIMATION_STEPS[stepIndex];
+      setText(currentStep.text);
+      setActiveRaw(currentStep.raw);
+      setCandidates(currentStep.candidates);
+      setSelectedIndex(0);
 
-      if (char === ' ') {
-        if (buffer) {
-          const parsed = parseAvroText(buffer);
-          accumulatedText += (accumulatedText ? ' ' : '') + parsed;
-          buffer = '';
-          setCurrentBuffer('');
-          setActiveCandidates([]);
-        } else {
-          accumulatedText += ' ';
-        }
-      } else {
-        buffer += char;
-        setCurrentBuffer(buffer);
-        const parsed = parseAvroText(buffer);
-        setActiveCandidates([parsed, buffer]);
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = currentStep.caret;
+        textareaRef.current.selectionEnd = currentStep.caret;
       }
 
-      setText(accumulatedText + (buffer ? (accumulatedText ? ' ' : '') + buffer : ''));
-
-      const delay = char === ' ' ? 280 : 110 + Math.random() * 40;
-      timer = setTimeout(step, delay);
+      stepIndex = (stepIndex + 1) % ANIMATION_STEPS.length;
+      timer = setTimeout(runStep, currentStep.delay);
     };
 
-    timer = setTimeout(step, 600);
+    timer = setTimeout(runStep, 450);
 
     return () => {
+      isMounted = false;
       if (timer) clearTimeout(timer);
     };
   }, [userInteracted]);
@@ -79,8 +131,64 @@ export function HeroLiveTransliteration() {
   const handleUserFocus = () => {
     if (!userInteracted) {
       setUserInteracted(true);
-      setActiveCandidates([]);
-      setCurrentBuffer('');
+      setActiveRaw('');
+      setCandidates([]);
+    }
+  };
+
+  const handleUserKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    setUserInteracted(true);
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Handle suggestion candidate selection with Tab or Enter
+    if (candidates.length > 0) {
+      if (e.key === 'Tab' || e.key === 'Enter') {
+        e.preventDefault();
+        const chosen = candidates[selectedIndex] || candidates[0];
+        const before = text.slice(0, textarea.selectionStart - avroStateRef.current.lastConvertedLength);
+        const after = text.slice(textarea.selectionStart);
+        const nextText = before + chosen + after;
+        setText(nextText);
+        avroStateRef.current = createInitialAvroState();
+        setActiveRaw('');
+        setCandidates([]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        avroStateRef.current = createInitialAvroState();
+        setActiveRaw('');
+        setCandidates([]);
+        return;
+      }
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const res = processAvroKeystroke(e.key, text, start, end, avroStateRef.current);
+
+    if (res.handled) {
+      e.preventDefault();
+      avroStateRef.current = res.newState;
+      setText(res.newText);
+
+      // Caret sync
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = res.newCaret;
+          textareaRef.current.selectionEnd = res.newCaret;
+        }
+      }, 0);
+
+      if (res.newState.rawBuffer) {
+        setActiveRaw(res.newState.rawBuffer);
+        const suggs = getAvroCandidates(res.newState.rawBuffer);
+        setCandidates(suggs.length > 0 ? suggs : [parseAvroText(res.newState.rawBuffer)]);
+      } else {
+        setActiveRaw('');
+        setCandidates([]);
+      }
     }
   };
 
@@ -88,6 +196,32 @@ export function HeroLiveTransliteration() {
     setUserInteracted(true);
     setText(e.target.value);
   };
+
+  const handleSelectCandidate = (index: number) => {
+    const chosen = candidates[index];
+    if (!chosen) return;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const before = text.slice(0, Math.max(0, textarea.selectionStart - avroStateRef.current.lastConvertedLength));
+    const after = text.slice(textarea.selectionStart);
+    const nextText = before + chosen + ' ' + after;
+    setText(nextText);
+    avroStateRef.current = createInitialAvroState();
+    setActiveRaw('');
+    setCandidates([]);
+    textarea.focus();
+  };
+
+  const handleRestartAnimation = () => {
+    setUserInteracted(false);
+    setText('');
+    setActiveRaw('');
+    setCandidates([]);
+    avroStateRef.current = createInitialAvroState();
+  };
+
+  const hasCandidateBar = Boolean(activeRaw && candidates.length > 0);
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center py-6 sm:py-10">
@@ -124,7 +258,7 @@ export function HeroLiveTransliteration() {
             )}
           </button>
 
-          {/* Secondary Action: Open Studio / Docs */}
+          {/* Secondary Action: Open Docs */}
           <Link
             href="/docs"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#121E19] text-[#14201B] dark:text-[#EDF5F1] border border-[#D9E2DD] dark:border-[#20312B] font-body text-xs sm:text-sm font-semibold hover:border-[#006A4E] dark:hover:border-[#008763] transition-colors shadow-xs"
@@ -141,43 +275,47 @@ export function HeroLiveTransliteration() {
       </div>
 
       {/* Right: Real working editor with the signature transliteration moment */}
-      <div className="lg:col-span-6 w-full">
+      <div className="lg:col-span-6 w-full relative">
         <div className="relative rounded-2xl bg-white dark:bg-[#121E19] border border-[#D9E2DD] dark:border-[#20312B] focus-within:border-[#006A4E] dark:focus-within:border-[#008763] focus-within:ring-2 focus-within:ring-[#006A4E]/15 shadow-sm transition-all overflow-hidden">
           {/* Top subtle bar */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#D9E2DD] dark:border-[#20312B] bg-[#F4F7F5]/60 dark:bg-[#0C1512]/60 text-xs font-body">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-semibold text-zinc-800 dark:text-zinc-200">লাইভ অভ্র ডেমো</span>
               <span className="text-[11px] text-zinc-400 font-mono">(&lt;BanglaEditor /&gt;)</span>
             </div>
-            <span className="text-[11px] text-[#006A4E] dark:text-[#00A377] font-medium font-body">
-              {userInteracted ? 'ইউজার টাইপিং মোড' : 'স্বয়ংক্রিয় প্রিভিউ'}
-            </span>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#006A4E] dark:text-[#00A377] font-medium font-body flex items-center gap-1.5">
+                {!userInteracted && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#006A4E] dark:bg-[#00A377] animate-ping" />
+                )}
+                {userInteracted ? 'ইউজার টাইপিং মোড' : 'অবিরাম লাইভ অ্যানিমেশন'}
+              </span>
+
+              {userInteracted && (
+                <button
+                  type="button"
+                  onClick={handleRestartAnimation}
+                  className="inline-flex items-center gap-1 text-[10px] text-zinc-400 hover:text-[#006A4E] dark:hover:text-[#00A377] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 transition-colors cursor-pointer"
+                  title="পুনরায় অটো অ্যানিমেশন চালান"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>রিস্টার্ট</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Candidate Bar Simulation during demo */}
-          {activeCandidates.length > 0 && currentBuffer && (
-            <div className="absolute top-14 left-6 z-20 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#121E19] border border-[#006A4E]/40 dark:border-[#008763]/50 shadow-md">
-              <span className="text-[11px] font-mono text-[#006A4E] dark:text-[#00A377] font-bold">
-                {currentBuffer}
-              </span>
-              <span className="text-zinc-300 dark:text-zinc-700">|</span>
-              <div className="flex items-center gap-1">
-                {activeCandidates.map((cand, idx) => (
-                  <span
-                    key={cand}
-                    className={`px-2 py-0.5 rounded-full text-[16px] font-body leading-tight ${
-                      idx === 0
-                        ? 'bg-[#006A4E] text-white font-semibold'
-                        : 'text-zinc-600 dark:text-zinc-300'
-                    }`}
-                  >
-                    {cand}
-                    {idx === 0 && <CornerDownLeft className="inline w-2.5 h-2.5 ml-1 text-white/90" />}
-                  </span>
-                ))}
-              </div>
-            </div>
+          {/* Real Caret-Anchored AvroCandidateBar */}
+          {hasCandidateBar && (
+            <AvroCandidateBar
+              targetRef={textareaRef}
+              rawWord={activeRaw}
+              candidates={candidates}
+              selectedIndex={selectedIndex}
+              onSelect={handleSelectCandidate}
+            />
           )}
 
           {/* Editor Body */}
@@ -188,7 +326,8 @@ export function HeroLiveTransliteration() {
               onFocus={handleUserFocus}
               onClick={handleUserFocus}
               onChange={handleUserChange}
-              placeholder="এখানে ইংরেজিতে লিখুন (যেমন: ami banglay likhi → আমি বাংলায় লিখি)..."
+              onKeyDown={handleUserKeyDown}
+              placeholder="এখানে ইংরেজিতে লিখুন (যেমন: Amar sonar bangal ami tomai valobashi)..."
               spellCheck={false}
               className="w-full flex-1 bg-transparent resize-none text-lg sm:text-xl text-[#14201B] dark:text-[#EDF5F1] placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none leading-relaxed font-body"
               rows={4}
