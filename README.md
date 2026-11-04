@@ -1,7 +1,7 @@
 # BanglaType (বাংলা টাইপ)
 
 <p align="center">
-  <strong>Production-ready, zero-dependency Bengali typing engine, UI components, and headless hooks for React, Next.js, Vite, Remix, and Node.js.</strong>
+  <strong>A drop-in Bengali typing engine for React and Next.js developers, with ready components, headless hooks, and server-safe pure functions.</strong>
 </p>
 
 <p align="center">
@@ -16,43 +16,62 @@
 
 ## Table of Contents
 
-- [Features](#features)
-- [Cross-Platform Browser Input](#cross-platform-browser-input)
-- [Installation (Using as a Library)](#installation-using-as-a-library)
+- [Overview & Design Philosophy](#overview--design-philosophy)
+- [Key Features](#key-features)
+- [Installation](#installation)
   - [Peer Dependencies](#peer-dependencies)
 - [Quick Start: 1-Line Drop-in Components](#quick-start-1-line-drop-in-components)
   - [A. Single-Line Input (`<BanglaInput />`)](#a-single-line-input-banglainput-)
-  - [B. Full Multiline Workspace (`<BanglaEditor />`)](#b-full-multiline-workspace-banglaeditor-)
+  - [B. Multiline Workspace (`<BanglaEditor />`)](#b-multiline-workspace-banglaeditor-)
 - [Integration Patterns](#integration-patterns)
   - [Pattern 1: Controlled Form Input](#pattern-1-controlled-form-input)
   - [Pattern 2: Controlled Multiline Editor with External Mode State](#pattern-2-controlled-multiline-editor-with-external-mode-state)
-  - [Pattern 3: Headless Single-Line Input (`useBanglaInput`)](#pattern-3-headless-single-line-input-usebanglainput)
+  - [Pattern 3: "Bring Your Own UI" Headless Input (`useBanglaInput`)](#pattern-3-bring-your-own-ui-headless-input-usebanglainput)
   - [Pattern 4: Headless Textarea Hook (`useBanglaEditor`)](#pattern-4-headless-textarea-hook-usebanglaeditor)
-  - [Pattern 5: Pure Functions for Backend, Node.js & CLI](#pattern-5-pure-functions-for-backend-nodejs--cli)
-- [Typography & Bengali Rendering Checklist](#typography--bengali-rendering-checklist)
+  - [Pattern 5: Pure Engine Functions for Backend, Node.js & CLI](#pattern-5-pure-engine-functions-for-backend-nodejs--cli)
+- [Subpath Imports & Modular Architecture](#subpath-imports--modular-architecture)
+- [Typography & Bengali Rules Checklist](#typography--bengali-rules-checklist)
 - [Keyboard Navigation & Shortcuts](#keyboard-navigation--shortcuts)
-- [Local Development & Repository Setup](#local-development--repository-setup)
-- [Subpath Imports & Tree Shaking](#subpath-imports--tree-shaking)
+- [Honest Limits & Dictionary-Free Engine](#honest-limits--dictionary-free-engine)
+- [Cross-Platform Input Considerations](#cross-platform-input-considerations)
 - [API Reference](#api-reference)
+- [Local Development Setup](#local-development-setup)
 - [License](#license)
 
 ---
 
-## Features
+## Overview & Design Philosophy
 
-- **Avro Phonetic Typing**: Instant transliteration (`ami banglay gan gai` → `আমি বাংলায় গান গাই`).
-- **Jatiyo Keyboard Layout**: Standard National Bengali keyboard mapping with physical keystroke interception and Virama (`্`) conjunct creation.
-- **Caret-Anchored Suggestions**: High-precision floating candidate bar portaled cleanly above the typing cursor without layout shifts.
-- **Headless Hooks**: `useBanglaInput` and `useBanglaEditor` let you bring your own custom UI (Shadcn UI, Radix, MUI, Chakra, Tailwind).
-- **Pure Algorithms**: Zero-DOM transliteration functions (`parseAvroText`, `smartTransliterateFullText`, `getJatiyoChar`, `fetchWordSuggestions`) for backend API routes, CLIs, or server runtimes.
-- **Zero Runtime Dependencies**: Ultra-lightweight bundle without bloated third-party keyboard scripts.
-- **React 18 & 19 Ready**: Server-Side Rendering (SSR) safe and Next.js App Router compatible.
+BanglaType is engineered around **the live transliteration moment**: Latin keystrokes turning into Bengali directly at the caret, accompanied by a compact, high-precision candidate bar floating directly above the typing cursor without layout shifts.
+
+- **Calm, Precise, Typographic**: Built like a well-crafted reading tool rather than a noisy dev-tool landing page.
+- **Design Tokens**:
+  - `--ink`: `#14201B` (Text)
+  - `--paper`: `#F4F7F5` (Cool page surface)
+  - `--surface`: `#FFFFFF` (Panels and editors)
+  - `--line`: `#D9E2DD` (Subtle 1px borders)
+  - `--green`: `#006A4E` (Primary accent: Bangladesh flag green)
+  - `--red`: `#E5334B` (Rare accent)
+  - **Dark mode**: Deep green-black background (`#0C1512`), surface (`#121E19`), border (`#20312B`), and `#008763` green accent.
+- **Code-Split & Modular**: Cleanly organized into independent components and hooks, optimized for Turbopack, Partial Prefetching, and Server-Side Rendering (SSR).
 
 ---
 
-## Installation (Using as a Library)
+## Key Features
 
-Install `banglatype` into your existing React, Next.js, Vite, Remix, or Node.js project:
+- **Avro Phonetic Typing**: Live phonetics (`ami banglay gan gai` → `আমি বাংলায় গান গাই`).
+- **Jatiyo Keyboard Layout**: Physical keystroke interception with Virama (`্` via <kbd>g</kbd>) for accurate conjuncts (যুক্তাক্ষর).
+- **Caret-Anchored Suggestions**: Compact suggestion pill (`AvroCandidateBar`) portaled directly above the active caret, displaying the raw token, numbered candidate options, and keyboard shortcuts (`Tab`, `↵`, `Esc`).
+- **Headless Flexibility**: `useBanglaInput` and `useBanglaEditor` allow complete freedom to style your own inputs (Shadcn UI, Radix, Tailwind, MUI, Chakra).
+- **Bangla Numeral Counters**: Live word, character, and line counters in Bengali digits (`০১২৩৪৫৬৭৮৯`) with an instant toggle for English numerals (`123`).
+- **Zero Runtime Dependencies**: Ultra-lightweight bundle without third-party keyboard bloat.
+- **React 18 & 19 Ready**: Full SSR compatibility with zero hydration mismatch.
+
+---
+
+## Installation
+
+Install `banglatype` into your project:
 
 ### Using npm:
 ```bash
@@ -75,7 +94,7 @@ bun add banglatype
 ```
 
 ### Peer Dependencies
-`banglatype` is compatible with both React 18 and React 19:
+BanglaType works out of the box with React 18 and React 19:
 ```json
 {
   "peerDependencies": {
@@ -90,7 +109,7 @@ bun add banglatype
 ## Quick Start: 1-Line Drop-in Components
 
 ### A. Single-Line Input (`<BanglaInput />`)
-Ideal for search bars, comment fields, and short inputs. Provides automatic phonetic transliteration, candidate suggestions, inline clear, and clipboard copy:
+Ideal for search bars, comment fields, and short forms. Includes phonetic transliteration, candidate dropdown, clear button, and clipboard copy:
 
 ```tsx
 import { BanglaInput } from 'banglatype';
@@ -98,14 +117,14 @@ import { BanglaInput } from 'banglatype';
 export default function SearchBar() {
   return (
     <BanglaInput 
-      placeholder="বাংলায় খুঁজুন (যেমন: khobor → খবর)..." 
+      placeholder="বাংলায় খুঁজুন (যেমন: khobor → খবর)..." 
     />
   );
 }
 ```
 
-### B. Full Multiline Workspace (`<BanglaEditor />`)
-A complete glassmorphic workspace with mode switching (Avro / Jatiyo / English), live character and word counters, clipboard copy, and full-text transliteration:
+### B. Multiline Workspace (`<BanglaEditor />`)
+A full-featured editor with mode switching (Avro / Jatiyo / English), live character and word counters in Bangla numerals, copy to clipboard, clear confirmation, and full-text conversion:
 
 ```tsx
 import { BanglaEditor } from 'banglatype';
@@ -113,7 +132,7 @@ import { BanglaEditor } from 'banglatype';
 export default function NoteEditor() {
   return (
     <BanglaEditor 
-      placeholder="এখানে বাংলায় বিস্তারিত লিখুন..." 
+      placeholder="এখানে বাংলায় বিস্তারিত লিখুন..." 
     />
   );
 }
@@ -124,7 +143,7 @@ export default function NoteEditor() {
 ## Integration Patterns
 
 ### Pattern 1: Controlled Form Input
-Plug directly into standard React state, React Hook Form, or Formik:
+Seamlessly integrates with React state, React Hook Form, or Formik:
 
 ```tsx
 'use client';
@@ -144,7 +163,7 @@ export function CommentForm() {
         placeholder="যেমন: rohim → রহিম"
         className="max-w-md"
       />
-      <button type="submit" className="mt-3 px-4 py-2 bg-emerald-600 text-white rounded-lg">
+      <button type="submit" className="mt-3 px-4 py-2 bg-[#006A4E] text-white rounded-lg">
         জমা দিন
       </button>
     </form>
@@ -155,7 +174,7 @@ export function CommentForm() {
 ---
 
 ### Pattern 2: Controlled Multiline Editor with External Mode State
-Synchronize keyboard mode with your application's global navigation or state:
+Synchronize keyboard mode with external navigation, radio groups, or global application state:
 
 ```tsx
 'use client';
@@ -188,15 +207,16 @@ export function BlogPostWriter() {
 
 ---
 
-### Pattern 3: Headless Single-Line Input (`useBanglaInput`)
-Attach full Avro intelligence to your own custom input markup (such as Shadcn UI):
+### Pattern 3: "Bring Your Own UI" Headless Input (`useBanglaInput`)
+The headless `useBanglaInput` hook lets you power completely different interface skins with identical typing intelligence:
 
 ```tsx
 'use client';
 
 import { useBanglaInput, AvroCandidateBar } from 'banglatype';
+import { Search } from 'lucide-react';
 
-export function CustomSearchBox() {
+export function CustomSearchPill() {
   const {
     value,
     inputRef,
@@ -211,8 +231,8 @@ export function CustomSearchBox() {
   } = useBanglaInput({ mode: 'avro' });
 
   return (
-    <div className="relative w-full max-w-sm">
-      {/* Floating Suggestions Portaled Above Caret */}
+    <div className="relative w-full max-w-md">
+      {/* Caret-Anchored Suggestions */}
       {hasCandidateBar && (
         <AvroCandidateBar
           targetRef={inputRef}
@@ -223,16 +243,19 @@ export function CustomSearchBox() {
         />
       )}
 
-      {/* Your Own Custom Input */}
-      <input
-        ref={inputRef}
-        value={value}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        placeholder="খুঁজুন..."
-        className="w-full px-4 py-2 border rounded-xl shadow-sm"
-      />
+      {/* Custom Search Pill UI */}
+      <div className="relative flex items-center">
+        <Search className="w-4 h-4 text-zinc-400 absolute left-3" />
+        <input
+          ref={inputRef}
+          value={value}
+          onKeyDown={handleKeyDown}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="বাংলায় অনুসন্ধান করুন..."
+          className="w-full pl-9 pr-4 py-2 border rounded-full bg-zinc-50 dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#006A4E]/30"
+        />
+      </div>
     </div>
   );
 }
@@ -241,7 +264,7 @@ export function CustomSearchBox() {
 ---
 
 ### Pattern 4: Headless Textarea Hook (`useBanglaEditor`)
-Build customized document editors, chatboxes, or CMS fields with your own styling:
+Build customized document editors, chat composers, or CMS rich fields:
 
 ```tsx
 'use client';
@@ -266,7 +289,7 @@ export function MinimalTextarea() {
   } = useBanglaEditor({ mode: 'avro' });
 
   return (
-    <div className="flex flex-col border rounded-2xl p-4 bg-white shadow-sm">
+    <div className="flex flex-col border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 bg-white dark:bg-zinc-900">
       {hasCandidateBar && (
         <AvroCandidateBar
           targetRef={textareaRef}
@@ -284,15 +307,15 @@ export function MinimalTextarea() {
         onChange={handleChange}
         onBlur={handleBlur}
         rows={5}
-        className="w-full resize-none outline-none leading-relaxed"
+        className="w-full resize-none outline-none leading-relaxed bg-transparent"
         placeholder="ami banglay gan gai..."
       />
 
-      <div className="flex justify-between items-center pt-2 border-t text-xs text-zinc-500">
+      <div className="flex justify-between items-center pt-3 border-t text-xs text-zinc-500">
         <span>{stats.words} শব্দ • {stats.characters} অক্ষর</span>
         <button
           onClick={copyToClipboard}
-          className="px-3 py-1 bg-zinc-900 text-white rounded-md"
+          className="px-3 py-1 bg-[#006A4E] text-white rounded-lg"
         >
           {copied ? 'কপি হয়েছে' : 'কপি করুন'}
         </button>
@@ -304,8 +327,8 @@ export function MinimalTextarea() {
 
 ---
 
-### Pattern 5: Pure Functions for Backend, Node.js & CLI
-Use pure algorithms in API routes, serverless functions, or CLI scripts without loading React:
+### Pattern 5: Pure Engine Functions for Backend, Node.js & CLI
+Run pure algorithms in server actions, API routes, workers, or command-line scripts without loading React:
 
 ```ts
 import {
@@ -319,63 +342,61 @@ import {
 const bangla = parseAvroText('amar sonar bangla');
 console.log(bangla); // "আমার সোনার বাংলা"
 
-// 2. Dictionary-free full-text phonetic transliteration
+// 2. Full-text phonetic transliteration
 const accurateBangla = await smartTransliterateFullText('ami bangladeshke bhalobashi');
 console.log(accurateBangla); // "আমি বাংলাদেশকে ভালোবাসি"
 
-// 3. Physical QWERTY-to-Jatiyo keyboard keystroke conversion
+// 3. Physical QWERTY-to-Jatiyo keystroke conversion
 const char = getJatiyoChar({ key: 'd', shiftKey: false });
 console.log(char); // "ি"
 
-// 4. Generate phonetic candidates for a word
+// 4. Generate phonetic candidates for an input word
 const candidates = await fetchWordSuggestions('shadhinota');
 console.log(candidates); // ["স্বাধীনতা", "স্বাধীনতার", ...]
 ```
 
 ---
 
-## Dictionary-Free Phonetic Conversion
+## Subpath Imports & Modular Architecture
 
-The default Avro conversion path uses phonetic rules and spelling-variant candidates; it does not require adding each new word to a built-in wordlist. User corrections are optional and stored separately from generated conversions.
+For optimal tree-shaking, import only the modules you need:
 
-- `parseAvroText(text)` uses phonetic rules by default.
-- `fetchWordSuggestions(word)` generates candidates from the phonetic engine and spelling variants; it does not scan built-in dictionary prefixes.
-- `setCachedWord(raw, bangla)` is optional and intended for an explicit user correction, not for seeding a required wordlist.
-- Legacy dictionary-based parsing remains available only when explicitly requested through `parse(text, { dictionary: true })` or by passing a custom dictionary.
+```ts
+// 1. Main all-in-one package
+import { BanglaInput, BanglaEditor } from 'banglatype';
 
-Dictionary-free conversion cannot always resolve homophones or ambiguous spellings. Candidate quality and compatibility must be checked against verified Avro reference outputs before claiming full Avro equivalence.
+// 2. UI Primitives only (Buttons, Badges, Modals, CandidateBar)
+import { Button, Badge, Card, AvroCandidateBar } from 'banglatype/ui';
 
----
+// 3. Headless Hooks only (Zero UI dependencies)
+import { useBanglaInput, useBanglaEditor } from 'banglatype/hooks';
 
-## Cross-Platform Browser Input
-
-BanglaType uses native browser inputs; it does not render a separate on-screen keyboard. Its input hooks support both desktop keyboard events and native text changes, which is important because mobile browsers do not always expose the same keyboard events as desktop browsers.
-
-See [Cross-Platform Input Notes](docs/cross-platform-input.md) for the input strategy and real-device verification checklist.
-
-**Compatibility note:** desktop behavior and native mobile keyboard behavior must be verified separately. In particular, Jatiyo mapping depends on the key values exposed by the native keyboard and may vary with keyboard layout, autocorrect, and composition behavior.
+// 4. Pure typing engine & algorithms only (Node.js, Edge, Server Components)
+import { parseAvroText, getJatiyoChar } from 'banglatype/lib';
+```
 
 ---
 
-## Typography & Bengali Rendering Checklist
+## Typography & Bengali Rules Checklist
 
-To guarantee crisp conjuncts (যুক্তাক্ষর) like `ক্ষ`, `ন্ত`, `স্ত্র` and prevent font clipping in your app:
+To ensure proper rendering of complex conjuncts (যুক্তাক্ষর) like `ক্ষ`, `ন্ত`, `স্ত্র`:
 
-1. **Load Google Fonts**: Use **Anek Bangla** for headings and **Hind Siliguri** for body text.
+1. **Google Fonts Setup**: Use **Anek Bangla** for headings and **Hind Siliguri** for body text.
    ```tsx
    // Next.js App Router (app/layout.tsx)
    import { Anek_Bangla, Hind_Siliguri } from 'next/font/google';
 
-   const anek = Anek_Bangla({ subsets: ['bengali', 'latin'], variable: '--font-anek', display: 'swap' });
-   const hind = Hind_Siliguri({ subsets: ['bengali', 'latin'], weight: ['400', '500', '600', '700'], variable: '--font-hind', display: 'swap' });
+   export const anek = Anek_Bangla({ subsets: ['bengali', 'latin'], variable: '--font-anek', display: 'swap' });
+   export const hind = Hind_Siliguri({ subsets: ['bengali', 'latin'], weight: ['400', '500', '600', '700'], variable: '--font-hind', display: 'swap' });
    ```
-2. **Body Line-Height**: Set line-height to at least `1.5` (`line-height: 1.625` / Tailwind `leading-relaxed`) to prevent matra clipping.
-3. **No Negative Tracking**: Avoid `tracking-tight` on Bengali text; negative letter spacing breaks complex conjunct ligatures.
-4. **No Uppercase**: Bengali has no uppercase characters; CSS `uppercase` causes glyph deformation.
-5. **Form Font Inheritance**:
+2. **Body Line-Height**: Set line-height to at least `1.6` (`leading-relaxed`) to prevent upper and lower matra clipping.
+3. **No Negative Tracking**: Never use `tracking-tight` on Bengali text; negative letter spacing breaks font ligatures.
+4. **No CSS Uppercase**: Bengali has no capital letters; CSS `uppercase` causes glyph deformation.
+5. **Form Font Inheritance**: Always ensure form controls inherit the Bengali font family:
    ```css
    input, textarea, button, select {
      font-family: inherit;
+     text-transform: none !important;
    }
    ```
 
@@ -383,74 +404,34 @@ To guarantee crisp conjuncts (যুক্তাক্ষর) like `ক্ষ`, 
 
 ## Keyboard Navigation & Shortcuts
 
-| Key / Action | Context | Result |
+| Keycap | Context | Action |
 | :--- | :--- | :--- |
-| <kbd>Tab</kbd> | Suggestion Dropdown Open | Commit the currently highlighted candidate |
-| <kbd>Shift</kbd> + <kbd>Tab</kbd> | Suggestion Dropdown Open | Commit the currently highlighted candidate; focus does not move to an off-screen option |
-| <kbd>Enter</kbd> | Suggestion Dropdown Open | Confirm and insert highlighted suggestion |
-| <kbd>Space</kbd> | Suggestion Dropdown Open | Confirm suggestion and insert trailing space |
-| <kbd>Escape</kbd> | Suggestion Dropdown Open | Dismiss candidate suggestion dropdown |
-| <kbd>ArrowDown</kbd> / <kbd>ArrowRight</kbd> | Suggestion Dropdown Open | Navigate to next candidate |
-| <kbd>ArrowUp</kbd> / <kbd>ArrowLeft</kbd> | Suggestion Dropdown Open | Navigate to previous candidate |
-| <kbd>Ctrl</kbd> + <kbd>A</kbd> | Textarea / Input | Select all text without ghost characters |
-| <kbd>g</kbd> (in Jatiyo mode) | Textarea / Input | Inserts Hasant (`্`) for joining conjunct characters |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Candidate Bar Open | Cycle between suggestion candidates |
+| <kbd>Enter</kbd> | Candidate Bar Open | Commit highlighted suggestion |
+| <kbd>1</kbd> &ndash; <kbd>7</kbd> | Candidate Bar Open | Directly select numbered candidate |
+| <kbd>Esc</kbd> | Candidate Bar Open | Dismiss candidate bar and keep Latin buffer |
+| <kbd>Space</kbd> | Input / Textarea | Transliterate and commit active phonetic word |
+| <kbd>Backspace</kbd> | Input / Textarea | Undo character or revert candidate selection |
+| <kbd>g</kbd> | Jatiyo Mode | Virama / Hasanta (`্`) for joining conjunct characters |
+| <kbd>Shift</kbd> + <kbd>Key</kbd> | Jatiyo Mode | Access upper Bengali character |
 
 ---
 
-## Local Development & Repository Setup
+## Honest Limits & Dictionary-Free Engine
 
-To run this repository locally, including the interactive Studio and Documentation Showcase:
+BanglaType operates on pure algorithmic phonetic rules without shipping bloated multi-megabyte dictionaries:
 
-### 1. Clone the repository:
-```bash
-git clone https://github.com/Rjk-Jami/BanglaType.git
-cd BanglaType
-```
-
-### 2. Install dependencies:
-```bash
-npm install
-# or
-pnpm install
-# or
-yarn install
-```
-
-### 3. Start development server:
-```bash
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) for the Interactive Studio, or [http://localhost:3000/docs](http://localhost:3000/docs) for the visual Library Integration Guide.
-
-### 4. Build for production:
-```bash
-npm run build
-```
-
-### 5. Start production server:
-```bash
-npm start
-```
+- **Homophones & Ambiguities**: Letters with similar sounds (যেমন: শ/ষ/স, ণ/ন, ই/ঈ) cannot always be guessed unequivocally without context. The candidate bar allows the user to select the preferred spelling.
+- **Custom Corrections**: Use `setCachedWord(raw, bangla)` to persist user-preferred spellings in the client cache without altering the library core.
+- **Mobile Soft Keyboards**: Virtual keyboards on iOS and Android trigger input events differently than physical desktop keyboards. Always test custom hooks on real mobile devices.
 
 ---
 
-## Subpath Imports & Tree Shaking
+## Cross-Platform Input Considerations
 
-For lightweight bundles, you can import only the specific modules you need:
+BanglaType relies on native browser DOM events rather than rendering a synthetic on-screen keyboard. Its hooks support both physical keyboard events and native `input` mutations to ensure reliable composition across desktop and mobile devices.
 
-```ts
-// 1. Full bundle (All-in-one)
-import { BanglaInput, BanglaEditor } from 'banglatype';
-
-// 2. UI Primitives only (Buttons, Badges, Modals)
-import { Button, Badge, Card } from 'banglatype/ui';
-
-// 3. Headless hooks only (No UI dependencies)
-import { useBanglaInput, useBanglaEditor } from 'banglatype/hooks';
-
-// 4. Pure typing engine & algorithms only (Node.js & server safe)
-import { parseAvroText, getJatiyoChar } from 'banglatype/lib';
-```
+See [Cross-Platform Input Notes](docs/cross-platform-input.md) for detailed guidelines.
 
 ---
 
@@ -461,24 +442,50 @@ import { parseAvroText, getJatiyoChar } from 'banglatype/lib';
 | Prop | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `mode` | `'avro' \| 'jatiyo' \| 'english'` | `'avro'` | Active keyboard mode |
-| `placeholder` | `string` | `'এক লাইনে বাংলায় লিখুন...'` | Input placeholder |
+| `placeholder` | `string` | `'এক লাইনে বাংলায় লিখুন...'` | Placeholder text |
 | `initialValue` | `string` | `''` | Initial text value |
-| `onValueChange` | `(value: string) => void` | `undefined` | Callback fired on every text change |
-| `showCopy` | `boolean` | `true` | Show inline copy to clipboard button |
-| `showClear` | `boolean` | `true` | Show inline clear button when text is present |
-| `className` | `string` | `''` | Extra CSS container classes |
+| `onValueChange` | `(value: string) => void` | `undefined` | Callback fired on text change |
+| `showCopy` | `boolean` | `true` | Show inline copy button |
+| `showClear` | `boolean` | `true` | Show inline clear button |
+| `className` | `string` | `''` | Container class name |
 
 ### `<BanglaEditor />` Props
 
 | Prop | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `mode` | `'avro' \| 'jatiyo' \| 'english'` | `'avro'` | Controlled keyboard mode |
-| `onModeChange` | `(mode: KeyboardMode) => void` | `undefined` | Callback when mode changes |
+| `onModeChange` | `(mode: KeyboardMode) => void` | `undefined` | Mode change listener |
 | `initialValue` | `string` | `''` | Initial text content |
-| `onChange` | `(value: string) => void` | `undefined` | Callback on text change |
-| `placeholder` | `string` | `undefined` | Custom textarea placeholder |
-| `showModeSelector`| `boolean` | `true` | Render top segmented mode pill |
-| `className` | `string` | `''` | Extra CSS container classes |
+| `onChange` | `(value: string) => void` | `undefined` | Text change listener |
+| `placeholder` | `string` | `undefined` | Textarea placeholder |
+| `showModeSelector`| `boolean` | `true` | Render mode segmented control |
+| `className` | `string` | `''` | Container class name |
+
+---
+
+## Local Development Setup
+
+To run the repository locally, including the interactive Studio and Documentation Showcase:
+
+```bash
+# 1. Clone repository
+git clone https://github.com/Rjk-Jami/BanglaType.git
+cd BanglaType
+
+# 2. Install dependencies
+npm install
+
+# 3. Start development server
+npm run dev
+
+# 4. Run tests
+npm run test:avro
+
+# 5. Build for production
+npm run build
+```
+
+Open [http://localhost:3000](http://localhost:3000) for the Interactive Studio, or [http://localhost:3000/docs](http://localhost:3000/docs) for the visual Library Integration Guide.
 
 ---
 
