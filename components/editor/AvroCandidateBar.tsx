@@ -192,22 +192,22 @@ export function AvroCandidateBar({
         overflow: 'hidden',
         zIndex: 9999, // Highest visual priority, above modals, stacking contexts & headers
       }}
-      className="inline-flex w-max max-w-[min(540px,calc(100vw-16px))] min-w-0 items-center gap-1 sm:gap-1.5 px-2 py-1 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-emerald-500/35 dark:border-emerald-500/40 rounded-full shadow-2xl shadow-black/15 dark:shadow-black/50 select-none animate-in fade-in zoom-in-95 duration-150 pointer-events-auto"
+      className="inline-flex w-max max-w-[min(580px,calc(100vw-16px))] min-w-0 items-center gap-1 sm:gap-1.5 px-2.5 py-1 bg-white dark:bg-[#121E19] border border-[#006A4E]/40 dark:border-[#008763]/50 rounded-full shadow-lg shadow-black/10 dark:shadow-black/40 select-none animate-in fade-in zoom-in-95 duration-100 pointer-events-auto"
     >
       {/* Raw Latin Token Badge */}
       <Badge
         variant="emerald"
         size="sm"
-        className="shrink-0 font-mono font-medium px-1.5 py-0.5"
+        className="shrink-0 font-mono font-medium px-2 py-0.5 bg-[#EBF3EF] dark:bg-[#142821] text-[#006A4E] dark:text-[#00A377] border-0"
       >
-        <Sparkles className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
-        <span className="max-w-[70px] truncate">{rawWord}</span>
+        <Sparkles className="w-2.5 h-2.5 text-[#006A4E] dark:text-[#00A377]" />
+        <span className="max-w-[80px] truncate">{rawWord}</span>
       </Badge>
 
-      <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+      <div className="h-3.5 w-px bg-[#D9E2DD] dark:bg-[#20312B] shrink-0" />
 
-      {/* Candidate Pills - Dynamic sizing & Horizontally Scrollable when items overflow */}
-      <div className="flex min-w-0 max-w-[min(420px,calc(100vw-180px))] items-center gap-1 overflow-x-auto overscroll-x-contain no-scrollbar py-0.5 touch-pan-x">
+      {/* Candidate Pills - Sized >= 16px as per Bengali rules */}
+      <div className="flex min-w-0 max-w-[min(440px,calc(100vw-190px))] items-center gap-1 overflow-x-auto overscroll-x-contain no-scrollbar py-0.5 touch-pan-x">
         {candidates.slice(0, 7).map((cand, idx) => {
           const isSelected = idx === selectedIndex;
           return (
@@ -222,24 +222,24 @@ export function AvroCandidateBar({
                 onSelect(idx);
               }}
               onClick={() => onSelect(idx)}
-              className={`group shrink-0 flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-xs font-medium transition-all cursor-pointer active:scale-95 ${
+              className={`group shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs'
-                  : 'bg-zinc-100/90 dark:bg-zinc-800/90 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
+                  ? 'bg-[#006A4E] dark:bg-[#008763] text-white shadow-xs font-semibold'
+                  : 'bg-zinc-100/90 dark:bg-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-[#14201B] dark:text-[#EDF5F1]'
               }`}
             >
               <span
-                className={`text-[9px] font-mono px-1 py-0.1 rounded-full ${
+                className={`text-[10px] font-mono px-1 rounded-full ${
                   isSelected
-                    ? 'bg-emerald-700/70 text-emerald-100'
+                    ? 'bg-white/20 text-white'
                     : 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400'
                 }`}
               >
                 {idx + 1}
               </span>
-              <span className="font-body text-xs leading-none whitespace-nowrap">{cand}</span>
+              <span className="font-body text-[16px] leading-tight whitespace-nowrap">{cand}</span>
               {isSelected && (
-                <CornerDownLeft className="w-2.5 h-2.5 text-emerald-100 opacity-80" />
+                <CornerDownLeft className="w-3 h-3 text-white/90" />
               )}
             </button>
           );
@@ -247,18 +247,21 @@ export function AvroCandidateBar({
       </div>
 
       {/* Desktop Keyboard Helper */}
-      <span className="hidden md:inline-flex items-center gap-1.5 pl-1 pr-1 text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0">
+      <span className="hidden md:inline-flex items-center gap-2 pl-1 pr-1 text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0">
         <span className="inline-flex items-center gap-0.5">
           <kbd className="px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-mono text-[9px]">
             Tab
           </kbd>
-          <span className="text-[9px]">switch</span>
         </span>
         <span className="inline-flex items-center gap-0.5">
           <kbd className="px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-mono text-[9px]">
             ↵
           </kbd>
-          <span className="text-[9px]">select</span>
+        </span>
+        <span className="inline-flex items-center gap-0.5">
+          <kbd className="px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-mono text-[9px]">
+            Esc
+          </kbd>
         </span>
       </span>
     </div>

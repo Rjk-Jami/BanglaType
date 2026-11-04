@@ -63,31 +63,31 @@ export function BanglaEditor({
 
   return (
     <div className={`w-full flex flex-col gap-4 ${className}`}>
-      {/* Editor Main Glass Container */}
-      <div className="relative flex flex-col rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border border-white/60 dark:border-zinc-800/80 shadow-2xl transition-all overflow-hidden ring-1 ring-black/5 dark:ring-white/5">
+      {/* Editor Main Clean Surface */}
+      <div className="relative flex flex-col rounded-2xl bg-white dark:bg-[#121E19] border border-[#D9E2DD] dark:border-[#20312B] focus-within:border-[#006A4E] dark:focus-within:border-[#008763] focus-within:ring-2 focus-within:ring-[#006A4E]/20 transition-all overflow-hidden shadow-xs">
         
         {/* Top Header Bar: Mode Switcher & Contextual Hint (optional / when enabled) */}
         {showModeSelector && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-950/40">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5 border-b border-[#D9E2DD] dark:border-[#20312B] bg-[#F4F7F5]/50 dark:bg-[#0C1512]/50">
             <KeyboardModeSelector mode={mode} onModeChange={handleModeChange} />
 
             {/* Quick Helper Badge */}
             <div className="flex items-center gap-2 text-xs font-body text-zinc-500 dark:text-zinc-400">
               {mode === 'avro' && (
-                <Badge variant="emerald" size="sm" className="text-[11px] font-normal py-1 px-2.5">
-                  <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                  <span>যেমন: kemon achhen → কেমন আছেন</span>
+                <Badge variant="emerald" size="sm" className="text-[11px] font-normal py-1 px-2.5 bg-[#EBF3EF] dark:bg-[#142821] text-[#006A4E] dark:text-[#00A377] border-0">
+                  <Sparkles className="w-3 h-3 text-[#006A4E] dark:text-[#00A377]" />
+                  <span>যেমন: ami banglay gan gai → আমি বাংলায় গান গাই</span>
                 </Badge>
               )}
               {mode === 'jatiyo' && (
                 <Badge variant="blue" size="sm" className="text-[11px] font-normal py-1 px-2.5">
                   <Info className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                  <span>যেকোনো যুক্তবর্ণের জন্য &apos;্&apos; (g) চাপুন</span>
+                  <span>যুক্তবর্ণের জন্য &apos;্&apos; (g) চাপুন</span>
                 </Badge>
               )}
               {mode === 'english' && (
                 <Badge variant="secondary" size="sm" className="text-[11px] font-normal py-1 px-2.5">
-                  <span>Standard English mode</span>
+                  <span>English pass-through</span>
                 </Badge>
               )}
             </div>

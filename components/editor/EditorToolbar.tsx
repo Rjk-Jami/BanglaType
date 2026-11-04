@@ -25,7 +25,7 @@ export function EditorToolbar({
   hasText,
 }: EditorToolbarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 rounded-b-2xl">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-[#F4F7F5]/60 dark:bg-[#0C1512]/60 border-t border-[#D9E2DD] dark:border-[#20312B] rounded-b-2xl">
       {/* Left: Stats */}
       <CharacterCounter stats={stats} />
 

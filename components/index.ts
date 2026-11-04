@@ -19,6 +19,8 @@ export * from './keyboard/KeyboardModeSelector';
 export * from './layout/Navbar';
 export * from './layout/Footer';
 
+// Home / Studio Components
+export * from './home';
+
 // Documentation & Showcase
 export * from './docs';
-
